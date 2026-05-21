@@ -1,5 +1,12 @@
 # Onehouse
 
+![status: WIP](https://img.shields.io/badge/status-WIP-orange) ![release: pre--v0](https://img.shields.io/badge/release-pre--v0-red)
+
+> **Heads up — this is work in progress.** Scaffold only. No app is wired up
+> end-to-end yet; nothing here is ready to run in production, and not even a
+> `v0` release has been cut. Expect breaking changes on every commit. Pin
+> nothing.
+
 A self-hosted "fleet of family apps" platform. Single Bun process, single Docker
 image, mobile-first PWA, behind Caddy on a Hetzner VPS. First app: grocery
 list. Not publicly branded — internal infrastructure only.
@@ -29,18 +36,37 @@ See the full architecture spec for context and rationale.
 
 ```
 onehouse/
-├── apps/
-│   ├── server/                # Single runtime entry. Composition only.
-│   └── web/                   # React + Vite + PWA
-├── packages/
-│   ├── core/                  # Platform: auth, db, MCP plumbing, IDs, Result
-│   └── app-grocery/           # First app — shared / server / tools / ui
-├── drizzle/                   # Generated migrations (committed)
-├── data/                      # SQLite + WAL (Docker volume)
-├── scripts/                   # migrate.ts, backup, etc.
-├── .claude/                   # Agent rules (root + per-topic)
-└── .github/workflows/         # CI + deploy
+├── apps/                            # Leaves in the import DAG (nothing imports these)
+│   ├── server/                      # Single Bun runtime. Composition only.
+│   │   └── src/
+│   │       ├── composition.ts
+│   │       └── composition.test.ts  # ← tests sit next to the code they cover
+│   └── web/                         # React + Vite + PWA
+│       ├── src/{components,features,routes,lib}/
+│       └── e2e/                     # Playwright — the only non-colocated tests
+├── packages/                        # Internal libraries — imported by apps and each other
+│   ├── core/                        # Platform plumbing
+│   │   └── src/
+│   │       ├── shared/              # Branded IDs, Result, isomorphic helpers (browser-safe)
+│   │       │   ├── ids.ts
+│   │       │   └── ids.test.ts
+│   │       └── server/              # Better Auth, db, MCP plumbing, middleware
+│   └── app-grocery/                 # First app — four subpaths enforce the boundary
+│       └── src/
+│           ├── shared/              # State machines, Valibot, types (browser-safe)
+│           ├── server/              # Drizzle schema, Hono routes, services
+│           ├── tools/               # MCP tool definitions
+│           └── ui/                  # React components reused across entry points
+├── drizzle/                         # Generated migrations (committed)
+├── data/                            # SQLite + WAL (Docker volume)
+├── scripts/                         # migrate.ts, backup, etc.
+├── .claude/                         # Agent rules (root + per-topic)
+└── .github/workflows/               # CI + deploy
 ```
+
+Unit and integration tests are **colocated**: `foo.test.ts` lives next to
+`foo.ts` in the same directory. The only exception is Playwright E2E, which
+runs against the built Docker image and lives in `apps/web/e2e/`.
 
 Each `packages/app-*` exports four subpaths:
 
