@@ -35,6 +35,9 @@ jobs:
       - name: Lint + format
         run: pnpm check
 
+      - name: Check source (no-bare-as, sorted-exports)
+        run: pnpm check:source
+
       - name: Typecheck
         run: pnpm typecheck
 
