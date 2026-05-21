@@ -23,9 +23,6 @@ FROM deps AS build
 WORKDIR /app
 COPY . .
 RUN pnpm --filter @onehouse/web build
-RUN echo "confirm-modules-purge=false" >> .npmrc
-RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
-    pnpm prune --prod --ignore-scripts
 
 FROM oven/bun:1-slim AS runtime
 WORKDIR /app
