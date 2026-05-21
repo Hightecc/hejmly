@@ -3,6 +3,7 @@ import * as v from "valibot";
 const portSchema = v.pipe(
   v.string(),
   v.transform(Number),
+  v.number(),
   v.integer(),
   v.minValue(1),
   v.maxValue(65535),
@@ -13,23 +14,22 @@ const flagSchema = v.pipe(
   v.transform((s) => s !== "" && s !== "false" && s !== "0"),
 );
 
+const urlSchema = v.pipe(v.string(), v.url());
+const nonEmptySchema = v.pipe(v.string(), v.minLength(1));
+const secretSchema = v.pipe(v.string(), v.minLength(32));
+
 const envSchema = v.object({
-  PORT: v.optional(portSchema),
-  CI: v.optional(flagSchema),
-  E2E_BASE_URL: v.optional(v.pipe(v.string(), v.url())),
+  PORT: v.optional(portSchema, "3000"),
+  CI: v.optional(flagSchema, ""),
+  E2E_BASE_URL: v.optional(urlSchema, "http://localhost:5173"),
+  BETTER_AUTH_SECRET: v.optional(secretSchema),
+  BETTER_AUTH_URL: v.optional(urlSchema),
+  GOOGLE_ID: v.optional(nonEmptySchema),
+  GOOGLE_SECRET: v.optional(nonEmptySchema),
+  MCP_HOST: v.optional(nonEmptySchema),
+  DATABASE_PATH: v.optional(nonEmptySchema),
 });
 
-export type Env = {
-  PORT: number;
-  CI: boolean;
-  E2E_BASE_URL: string;
-};
+export type Env = v.InferOutput<typeof envSchema>;
 
-export const parseEnv = (raw: Record<string, string | undefined>): Env => {
-  const parsed = v.parse(envSchema, raw);
-  return {
-    PORT: parsed.PORT ?? 3000,
-    CI: parsed.CI ?? false,
-    E2E_BASE_URL: parsed.E2E_BASE_URL ?? "http://localhost:5173",
-  };
-};
+export const parseEnv = (raw: Record<string, string | undefined>): Env => v.parse(envSchema, raw);

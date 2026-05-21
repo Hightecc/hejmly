@@ -29,7 +29,7 @@ services:
 
   litestream:
     profiles: [prod]
-    image: litestream/litestream:latest
+    image: litestream/litestream:0.3.13
     restart: always
     volumes:
       - ./data:/data

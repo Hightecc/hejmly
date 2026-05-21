@@ -15,6 +15,7 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    environment: production
     permissions:
       contents: read
       packages: write
@@ -51,6 +52,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: onehouse
           key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
           script: |
             cd /opt/onehouse
             docker compose pull app
