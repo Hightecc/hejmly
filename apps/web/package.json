@@ -13,8 +13,9 @@
     "e2e": "playwright test"
   },
   "dependencies": {
-    "@onehouse/core": "workspace:*",
     "@onehouse/app-grocery": "workspace:*",
+    "@onehouse/core": "workspace:*",
+    "better-auth": "1.6.11",
     "clsx": "2.1.1",
     "tailwind-merge": "2.5.5"
   },
