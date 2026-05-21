@@ -19,7 +19,7 @@
     "tailwind-merge": "2.5.5"
   },
   "devDependencies": {
-    "@playwright/test": "1.49.1",
-    "vite": "6.0.7"
+    "@playwright/test": "1.59.1",
+    "vite": "6.4.2"
   }
 }
