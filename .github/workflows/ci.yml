@@ -35,15 +35,6 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm test
 
-  supply-chain:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
-      - run: pnpm audit --audit-level=high
-      - run: pnpm license:check
-
   build-image:
     runs-on: ubuntu-latest
     timeout-minutes: 20

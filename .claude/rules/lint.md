@@ -82,29 +82,13 @@ export { a, m, z };
 This applies only to re-export statements — `export const`, `export function`,
 etc. are not sorted (they're declarations, ordered for readability).
 
-## Commit messages
-
-Enforced by `.githooks/commit-msg`. Format:
-
-```
-<module>: <subject>
-
-[optional body]
-```
-
-`module` must be one of: `shared`, `grocery`.
-
-- `shared` — anything that isn't grocery-specific (core, infra, CI, docs,
-  `apps/server`, `apps/web`, `packages/core`).
-- `grocery` — `packages/app-grocery`.
-
-A commit that touches both modules is `shared:` (the broader scope wins).
-Merge / revert / fixup / squash commits bypass the check.
-
 ## Setup
 
+Hooks are managed by [lefthook](https://github.com/evilmartians/lefthook)
+(config in `lefthook.yml`). Install with:
+
 ```bash
-pnpm hooks:install   # one-time: git config core.hooksPath .githooks
+pnpm hooks:install   # one-time: writes .git/hooks/* via `lefthook install`
 ```
 
 `pnpm install` does NOT install hooks automatically — `.npmrc` has
