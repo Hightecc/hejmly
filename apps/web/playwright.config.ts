@@ -1,8 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// E2E runs against a real (built) app. In CI we boot the runtime Docker image;
-// locally `bun run dev` works.
-
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,

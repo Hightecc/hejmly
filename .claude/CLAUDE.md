@@ -123,6 +123,19 @@ You are working in a pnpm-workspaces monorepo. Loaded every session.
 - `apps/web/src/components`    → AppShell, layout, app-wide components
 - `apps/web/src/features`      → feature wiring (imports `app-*/ui` + `app-*/shared`)
 
+14. NEVER write comments by default. Code explains itself through naming and
+    structure. Two and only two reasons to add a comment:
+    (a) The code is confusing without it — a non-obvious invariant, a subtle
+        correctness constraint, an algorithm whose intent isn't readable from
+        the implementation.
+    (b) It's a workaround for an external bug or platform quirk — link the
+        issue / CVE / docs that justify it.
+    Banned: WHAT-the-code-does comments, task/PR context, restating types,
+    commented-out code (delete it; git remembers), section dividers, and
+    speculative TODOs. The `// TODO(basile): tighten this <reason>` escape
+    hatch from rule 1 is the one exception.
+    See `.claude/rules/comments.md` for examples.
+
 ## See also
 - `.claude/rules/types.md`
 - `.claude/rules/testing.md`
@@ -131,3 +144,4 @@ You are working in a pnpm-workspaces monorepo. Loaded every session.
 - `.claude/rules/honesty.md`
 - `.claude/rules/mobile.md`
 - `.claude/rules/ui.md`
+- `.claude/rules/comments.md`

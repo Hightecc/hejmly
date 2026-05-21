@@ -1,6 +1,5 @@
 # syntax=docker/dockerfile:1.7
 
-# ---------- 1. Install deps ----------
 FROM oven/bun:1 AS deps
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
@@ -16,14 +15,12 @@ COPY packages/app-grocery/package.json ./packages/app-grocery/
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
 
-# ---------- 2. Build ----------
 FROM deps AS build
 WORKDIR /app
 COPY . .
 RUN bun run typecheck
 RUN bun run --filter @onehouse/web build
 
-# ---------- 3. Production runtime ----------
 FROM oven/bun:1-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
@@ -47,7 +44,6 @@ EXPOSE 3000
 VOLUME ["/data"]
 CMD ["sh", "-c", "bun ./scripts/migrate.ts && exec bun ./apps/server/src/index.ts"]
 
-# ---------- 4. Development with hot reload ----------
 FROM deps AS dev
 WORKDIR /app
 ENV NODE_ENV=development
@@ -55,7 +51,4 @@ ENV DATABASE_PATH=/data/app.db
 ENV PORT=3000
 EXPOSE 3000 5173
 VOLUME ["/data"]
-# Source bind-mounted from host at runtime. CMD runs server + Vite in parallel
-# with hot reload: bun --hot reloads the server module graph; Vite serves the
-# React app over HMR.
 CMD ["sh", "-c", "bun ./scripts/migrate.ts && bun run dev"]

@@ -7,5 +7,4 @@ Bun.serve({
   fetch: app.fetch,
 });
 
-// biome-ignore lint/suspicious/noConsoleLog: server boot banner
 console.log(`onehouse server listening on http://localhost:${port}`);
