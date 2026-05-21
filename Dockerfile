@@ -2,7 +2,6 @@
 
 FROM node:22-bookworm-slim AS deps
 WORKDIR /app
-RUN corepack enable && corepack prepare --activate
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/server/package.json   ./apps/server/
@@ -11,7 +10,8 @@ COPY packages/core/package.json ./packages/core/
 COPY packages/app-grocery/package.json ./packages/app-grocery/
 
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile
+    corepack enable && corepack prepare --activate \
+ && pnpm install --frozen-lockfile
 
 FROM deps AS build
 WORKDIR /app
