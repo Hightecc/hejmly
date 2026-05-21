@@ -70,7 +70,8 @@ pnpm install
 cp .env.example .env
 # edit .env — at minimum BETTER_AUTH_SECRET (openssl rand -hex 32)
 
-# 3. Install git hooks (one-time, points git at .githooks/)
+# 3. Install git hooks (one-time; lefthook writes .git/hooks/* — `.npmrc`
+#    has `ignore-scripts=true`, so this is NOT done automatically by install)
 pnpm hooks:install
 
 # 4. Generate auth + DB schema, run migrations
@@ -97,7 +98,7 @@ Open <http://localhost:5173>.
 | `pnpm check`               | Biome lint + format check (incl. import order)  |
 | `pnpm check:source`        | No-bare-`as` + sorted-named-exports (TS AST)    |
 | `pnpm lint:fix`            | Biome auto-fix (organizes imports, etc.)        |
-| `pnpm hooks:install`       | Point git at `.githooks/` (one-time)            |
+| `pnpm hooks:install`       | Install lefthook git hooks (one-time)           |
 | `pnpm auth:generate`       | Regenerate Better Auth Drizzle schema; commit   |
 | `pnpm db:generate`         | Generate Drizzle migration from schema diff     |
 | `pnpm db:migrate`          | Apply pending migrations                        |
@@ -120,28 +121,16 @@ docker compose up -d
 The production image runs one Bun process serving `/api/auth/*`, `/api/*`,
 `/mcp`, and the static React bundle.
 
-## Commit format
-
-Enforced by the `commit-msg` hook in `.githooks/`. Two allowed modules:
-
-```
-shared:  <subject>
-grocery: <subject>
-```
-
-- `shared` — core platform, infra, CI, docs, `apps/server`, `apps/web`,
-  `packages/core`
-- `grocery` — anything in `packages/app-grocery`
-
-Merge/revert/fixup/squash commits bypass the check.
-
 ## Hooks
 
-`pnpm hooks:install` points git at `.githooks/`. Two hooks:
+Managed by [lefthook](https://github.com/evilmartians/lefthook) (`lefthook.yml`).
+Run `pnpm hooks:install` once after `pnpm install` (`.npmrc` has
+`ignore-scripts=true`, so lefthook does NOT install itself automatically).
 
-- `pre-commit` — runs `biome check` on staged `.ts`/`.tsx`, the AST
-  `check:source` (no bare `as`, sorted named exports), and `tsc -b`.
-- `commit-msg` — validates the commit message format above.
+`pre-commit` (parallel):
+- Biome lint + format on staged `.ts`/`.tsx`/`.json`/`.css` (auto-fix, re-stages)
+- `check-source` AST check (no bare `as`, sorted named exports) on staged `.ts`/`.tsx`
+- `tsc -b --noEmit` across the workspace (types are cross-file)
 
 ## Mobile-first
 

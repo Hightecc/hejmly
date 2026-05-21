@@ -1,10 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
-FROM oven/bun:1 AS deps
+FROM node:22-bookworm-slim AS deps
 WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
- && rm -rf /var/lib/apt/lists/* \
- && npm install -g pnpm@latest
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/server/package.json   ./apps/server/
@@ -13,13 +10,13 @@ COPY packages/core/package.json ./packages/core/
 COPY packages/app-grocery/package.json ./packages/app-grocery/
 
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile
+    corepack enable && corepack prepare --activate \
+ && pnpm install --frozen-lockfile
 
 FROM deps AS build
 WORKDIR /app
 COPY . .
-RUN bun run typecheck
-RUN bun run --filter @onehouse/web build
+RUN pnpm --filter @onehouse/web build
 
 FROM oven/bun:1-slim AS runtime
 WORKDIR /app
@@ -46,6 +43,7 @@ CMD ["sh", "-c", "bun ./scripts/migrate.ts && exec bun ./apps/server/src/index.t
 
 FROM deps AS dev
 WORKDIR /app
+COPY --from=oven/bun:1-slim /usr/local/bin/bun /usr/local/bin/bun
 ENV NODE_ENV=development
 ENV DATABASE_PATH=/data/app.db
 ENV PORT=3000

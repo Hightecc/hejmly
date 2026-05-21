@@ -8,12 +8,7 @@ services:
     restart: always
     volumes:
       - ./data:/data
-    environment:
-      - BETTER_AUTH_URL=${BETTER_AUTH_URL}
-      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
-      - GOOGLE_ID=${GOOGLE_ID}
-      - GOOGLE_SECRET=${GOOGLE_SECRET}
-      - MCP_HOST=${MCP_HOST}
+    env_file: .env
     expose:
       - "3000"
 
@@ -34,7 +29,7 @@ services:
 
   litestream:
     profiles: [prod]
-    image: litestream/litestream:latest
+    image: litestream/litestream:0.3.13
     restart: always
     volumes:
       - ./data:/data
@@ -58,7 +53,7 @@ services:
       - ./data:/data
     environment:
       - BETTER_AUTH_URL=http://localhost:5173
-      - BETTER_AUTH_SECRET=dev-secret-do-not-use-in-prod
+      - BETTER_AUTH_SECRET=dev-only-secret-min-32-chars-padded
       - GOOGLE_ID=${GOOGLE_ID}
       - GOOGLE_SECRET=${GOOGLE_SECRET}
       - MCP_HOST=localhost

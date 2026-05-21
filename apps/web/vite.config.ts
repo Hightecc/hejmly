@@ -1,5 +1,9 @@
-import { defineConfig } from "vite";
 import { resolve } from "node:path";
+import { parseEnv } from "@onehouse/core/shared";
+import { defineConfig } from "vite";
+
+const env = parseEnv(process.env);
+const apiTarget = `http://localhost:${env.PORT}`;
 
 export default defineConfig({
   plugins: [],
@@ -11,8 +15,8 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/api": { target: "http://localhost:3000", ws: true, changeOrigin: true },
-      "/mcp": { target: "http://localhost:3000", changeOrigin: true },
+      "/api": { target: apiTarget, ws: true, changeOrigin: true },
+      "/mcp": { target: apiTarget, changeOrigin: true },
     },
   },
 });
