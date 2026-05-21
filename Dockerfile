@@ -1,14 +1,8 @@
 # syntax=docker/dockerfile:1.7
 
-FROM oven/bun:1 AS deps
+FROM node:22-bookworm-slim AS deps
 WORKDIR /app
-ARG PNPM_VERSION=10.33.0
-ARG TARGETARCH
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
- && rm -rf /var/lib/apt/lists/* \
- && PNPM_ARCH=$(case "${TARGETARCH:-amd64}" in amd64) echo x64;; arm64) echo arm64;; *) echo "unsupported arch: ${TARGETARCH}" >&2; exit 1;; esac) \
- && curl -fsSL "https://github.com/pnpm/pnpm/releases/download/v${PNPM_VERSION}/pnpm-linux-${PNPM_ARCH}" -o /usr/local/bin/pnpm \
- && chmod +x /usr/local/bin/pnpm
+RUN corepack enable && corepack prepare --activate
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/server/package.json   ./apps/server/
@@ -49,6 +43,7 @@ CMD ["sh", "-c", "bun ./scripts/migrate.ts && exec bun ./apps/server/src/index.t
 
 FROM deps AS dev
 WORKDIR /app
+COPY --from=oven/bun:1-slim /usr/local/bin/bun /usr/local/bin/bun
 ENV NODE_ENV=development
 ENV DATABASE_PATH=/data/app.db
 ENV PORT=3000

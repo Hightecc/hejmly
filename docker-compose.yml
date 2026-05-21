@@ -53,7 +53,7 @@ services:
       - ./data:/data
     environment:
       - BETTER_AUTH_URL=http://localhost:5173
-      - BETTER_AUTH_SECRET=dev-secret-do-not-use-in-prod
+      - BETTER_AUTH_SECRET=dev-only-secret-min-32-chars-padded
       - GOOGLE_ID=${GOOGLE_ID}
       - GOOGLE_SECRET=${GOOGLE_SECRET}
       - MCP_HOST=localhost
