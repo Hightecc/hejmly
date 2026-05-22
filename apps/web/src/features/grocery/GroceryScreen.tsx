@@ -292,10 +292,12 @@ export const GroceryScreen = (): ReactElement => {
 
   const editingItem = match(drawer)
     .with({ kind: "edit" }, ({ id }) => visibleItems.find((i) => i.id === id) ?? null)
-    .otherwise(() => null);
+    .with({ kind: "none" }, { kind: "add" }, { kind: "remove" }, () => null)
+    .exhaustive();
   const removingItem = match(drawer)
     .with({ kind: "remove" }, ({ id }) => visibleItems.find((i) => i.id === id) ?? null)
-    .otherwise(() => null);
+    .with({ kind: "none" }, { kind: "add" }, { kind: "edit" }, () => null)
+    .exhaustive();
 
   return (
     <main className="flex min-h-dvh flex-col bg-slate-50">
