@@ -13,9 +13,9 @@ export const createApp = ({ auth, baseURL }: ComposeOptions) =>
   new Hono()
     .use("*", logger())
     .use("*", secureHeaders())
+    .use("/api/*", cors({ origin: baseURL, credentials: true }))
     .get("/healthz", (c) => c.json({ ok: true }))
     .on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw))
-    .use("/api/*", cors({ origin: baseURL, credentials: true }))
     .use("/api/*", createRequireSession(auth))
     .get("/api/me", (c) => c.json({ user: c.get("user") }));
 

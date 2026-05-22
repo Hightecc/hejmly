@@ -7,7 +7,11 @@ const baseURL =
 const authClient = createAuthClient({ baseURL });
 
 export const signInWithGoogle = (callbackURL = "/"): Promise<unknown> =>
-  authClient.signIn.social({ provider: "google", callbackURL });
+  authClient.signIn.social({
+    provider: "google",
+    callbackURL,
+    errorCallbackURL: "/sign-in/rejected",
+  });
 
 export const signOut = (): Promise<unknown> => authClient.signOut();
 
