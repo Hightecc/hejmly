@@ -132,6 +132,9 @@ importers:
       '@onehouse/core':
         specifier: workspace:*
         version: link:../core
+      '@radix-ui/react-dropdown-menu':
+        specifier: 2.1.16
+        version: 2.1.16(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       bunqueue:
         specifier: 2.7.14
         version: 2.7.14

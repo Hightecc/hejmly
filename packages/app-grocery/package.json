@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@onehouse/core": "workspace:*",
+    "@radix-ui/react-dropdown-menu": "2.1.16",
     "bunqueue": "2.7.14",
     "hono": "4.12.21",
     "ts-pattern": "5.9.0",

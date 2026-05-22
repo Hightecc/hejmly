@@ -1,6 +1,7 @@
 import { Outlet, createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
 import * as v from "valibot";
 
+import { AuthGuard } from "@/components/AuthGuard";
 import { CheckingScreen } from "@/features/auth/CheckingScreen";
 import { FirstArrivalScreen } from "@/features/auth/FirstArrivalScreen";
 import { RejectedScreen } from "@/features/auth/RejectedScreen";
@@ -44,13 +45,21 @@ export const rejectedRoute = createRoute({
 export const welcomeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/welcome",
-  component: FirstArrivalScreen,
+  component: () => (
+    <AuthGuard>
+      <FirstArrivalScreen />
+    </AuthGuard>
+  ),
 });
 
 export const groceryRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/grocery",
-  component: GroceryScreen,
+  component: () => (
+    <AuthGuard>
+      <GroceryScreen />
+    </AuthGuard>
+  ),
 });
 
 const routeTree = rootRoute.addChildren([

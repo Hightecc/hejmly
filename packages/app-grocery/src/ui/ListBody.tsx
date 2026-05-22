@@ -7,6 +7,8 @@ type ListBodyProps = {
   syncStates?: ReadonlyMap<GroceryItemId, ItemSyncState>;
   onToggle?: (id: GroceryItemId, purchased: boolean) => void;
   onRetry?: (id: GroceryItemId) => void;
+  onEdit?: (id: GroceryItemId) => void;
+  onRemove?: (id: GroceryItemId) => void;
 };
 
 const SectionHeading = ({ children }: { children: string }): ReactElement => (
@@ -15,7 +17,14 @@ const SectionHeading = ({ children }: { children: string }): ReactElement => (
   </li>
 );
 
-export const ListBody = ({ items, syncStates, onToggle, onRetry }: ListBodyProps): ReactElement => {
+export const ListBody = ({
+  items,
+  syncStates,
+  onToggle,
+  onRetry,
+  onEdit,
+  onRemove,
+}: ListBodyProps): ReactElement => {
   const active = items.filter((i) => !isPurchased(i.status));
   const done = items.filter((i) => isPurchased(i.status));
   const sync = (id: GroceryItemId): ItemSyncState => syncStates?.get(id) ?? "synced";
@@ -24,6 +33,8 @@ export const ListBody = ({ items, syncStates, onToggle, onRetry }: ListBodyProps
     syncState: sync(it.id),
     ...(onToggle ? { onToggle: (next: boolean) => onToggle(it.id, next) } : {}),
     ...(onRetry ? { onRetry: () => onRetry(it.id) } : {}),
+    ...(onEdit ? { onEdit: () => onEdit(it.id) } : {}),
+    ...(onRemove ? { onRemove: () => onRemove(it.id) } : {}),
   });
 
   return (

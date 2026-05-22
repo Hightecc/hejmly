@@ -31,7 +31,10 @@ const app = createApp({
 
 const server = Bun.serve({ port: env.PORT, fetch: app.fetch });
 
+let shuttingDown = false;
 const shutdown = async (signal: NodeJS.Signals): Promise<void> => {
+  if (shuttingDown) return;
+  shuttingDown = true;
   console.info(`onehouse server received ${signal}, shutting down`);
   await cleanup.close();
   await server.stop();

@@ -35,7 +35,9 @@ const toAuthor = (
   user: { id: string; name: string | null; email: string | null } | null,
 ): GroceryAuthor => {
   if (user === null) return { id: "unknown", name: "Someone", initial: "·" };
-  const displayName = user.name?.trim() ?? user.email ?? "Someone";
+  const trimmedName = user.name?.trim();
+  const displayName =
+    trimmedName !== undefined && trimmedName.length > 0 ? trimmedName : (user.email ?? "Someone");
   return { id: user.id, name: displayName, initial: initialOf(displayName) };
 };
 

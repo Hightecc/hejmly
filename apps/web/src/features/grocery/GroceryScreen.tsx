@@ -1,8 +1,14 @@
-import type { CreateItemInput, GroceryItem, GroceryItemId } from "@onehouse/app-grocery/shared";
+import type {
+  CreateItemInput,
+  GroceryItem,
+  GroceryItemId,
+  UpdateItemInput,
+} from "@onehouse/app-grocery/shared";
 import { isPurchased, parseGroceryItemId } from "@onehouse/app-grocery/shared";
 import {
   AddItemForm,
   BottomNav,
+  EditItemForm,
   EmptyState,
   Fab,
   type ItemSyncState,
@@ -18,7 +24,7 @@ import { toast } from "sonner";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useSession } from "@/lib/auth-client";
-import { createItem, fetchItems, togglePurchased } from "@/lib/grocery-api";
+import { createItem, deleteItem, fetchItems, togglePurchased, updateItem } from "@/lib/grocery-api";
 
 const ITEMS_QUERY_KEY = ["grocery", "items"] as const;
 const TEMP_ID_PREFIX = "tmp_";
@@ -35,7 +41,8 @@ const useIdentity = (): Identity => {
   const session = useSession();
   const user = session.data?.user;
   if (user === undefined) return { id: "me", name: "You", initial: "·" };
-  const name = user.name?.trim() ?? user.email ?? "You";
+  const trimmed = user.name?.trim();
+  const name = trimmed !== undefined && trimmed.length > 0 ? trimmed : (user.email ?? "You");
   const initial = name.charAt(0).toUpperCase() || "·";
   return { id: user.id, name, initial };
 };
@@ -45,6 +52,8 @@ export const GroceryScreen = (): ReactElement => {
   const online = useOnlineStatus();
   const identity = useIdentity();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingId, setEditingId] = useState<GroceryItemId | null>(null);
+  const [removingId, setRemovingId] = useState<GroceryItemId | null>(null);
   const [pending, setPending] = useState<ReadonlyMap<GroceryItemId, ItemSyncState>>(
     () => new Map(),
   );
@@ -64,7 +73,7 @@ export const GroceryScreen = (): ReactElement => {
     mutationFn: createItem,
     onMutate: async (input: CreateItemInput) => {
       await qc.cancelQueries({ queryKey: ITEMS_QUERY_KEY });
-      const tempId = parseGroceryItemId(`${TEMP_ID_PREFIX}${Date.now().toString(36)}`);
+      const tempId = parseGroceryItemId(`${TEMP_ID_PREFIX}${crypto.randomUUID()}`);
       const optimistic: GroceryItem = {
         id: tempId,
         name: input.name,
@@ -133,6 +142,61 @@ export const GroceryScreen = (): ReactElement => {
     },
   });
 
+  const update = useMutation({
+    mutationFn: ({ id, input }: { id: GroceryItemId; input: UpdateItemInput }) =>
+      updateItem(id, input),
+    onMutate: async ({ id, input }) => {
+      await qc.cancelQueries({ queryKey: ITEMS_QUERY_KEY });
+      const previous = qc.getQueryData<GroceryItem[]>(ITEMS_QUERY_KEY) ?? [];
+      qc.setQueryData<GroceryItem[]>(ITEMS_QUERY_KEY, (current) =>
+        (current ?? []).map((i) =>
+          i.id === id
+            ? {
+                ...i,
+                ...(input.name !== undefined ? { name: input.name } : {}),
+                ...(input.description !== undefined ? { description: input.description } : {}),
+                updatedAt: Date.now(),
+              }
+            : i,
+        ),
+      );
+      setSync(id, "queued");
+      return { previous, id };
+    },
+    onError: (_e, _vars, ctx) => {
+      if (ctx) {
+        qc.setQueryData<GroceryItem[]>(ITEMS_QUERY_KEY, ctx.previous);
+        setSync(ctx.id, "error");
+      }
+      toast.error("Could not update item");
+    },
+    onSuccess: (saved, _vars, ctx) => {
+      if (!ctx) return;
+      qc.setQueryData<GroceryItem[]>(ITEMS_QUERY_KEY, (current) =>
+        (current ?? []).map((i) => (i.id === ctx.id ? saved : i)),
+      );
+      setSync(ctx.id, null);
+      setEditingId((current) => (current === ctx.id ? null : current));
+    },
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: GroceryItemId) => deleteItem(id),
+    onMutate: async (id: GroceryItemId) => {
+      await qc.cancelQueries({ queryKey: ITEMS_QUERY_KEY });
+      const previous = qc.getQueryData<GroceryItem[]>(ITEMS_QUERY_KEY) ?? [];
+      qc.setQueryData<GroceryItem[]>(ITEMS_QUERY_KEY, (current) =>
+        (current ?? []).filter((i) => i.id !== id),
+      );
+      setSync(id, null);
+      return { previous };
+    },
+    onError: (_e, _vars, ctx) => {
+      if (ctx) qc.setQueryData<GroceryItem[]>(ITEMS_QUERY_KEY, ctx.previous);
+      toast.error("Could not remove item");
+    },
+  });
+
   const visibleItems = items.data ?? [];
 
   const counts = useMemo(() => {
@@ -154,6 +218,7 @@ export const GroceryScreen = (): ReactElement => {
   };
 
   const handleRetry = (id: GroceryItemId): void => {
+    if (isTempId(id)) return;
     const item = visibleItems.find((i) => i.id === id);
     if (item === undefined) return;
     toggle.mutate({ id, purchased: !isPurchased(item.status) });
@@ -162,6 +227,33 @@ export const GroceryScreen = (): ReactElement => {
   const handleCreate = (input: CreateItemInput): void => {
     create.mutate(input);
     setDrawerOpen(false);
+  };
+
+  const handleRemove = (id: GroceryItemId): void => {
+    if (isTempId(id)) return;
+    setRemovingId(id);
+  };
+
+  const handleConfirmRemove = (): void => {
+    if (removingId === null) return;
+    remove.mutate(removingId);
+    setRemovingId(null);
+  };
+
+  const handleEditOpen = (id: GroceryItemId): void => {
+    if (isTempId(id)) return;
+    setEditingId(id);
+  };
+
+  const editingItem =
+    editingId === null ? null : (visibleItems.find((i) => i.id === editingId) ?? null);
+
+  const removingItem =
+    removingId === null ? null : (visibleItems.find((i) => i.id === removingId) ?? null);
+
+  const handleEditSubmit = (input: UpdateItemInput): void => {
+    if (editingId === null) return;
+    update.mutate({ id: editingId, input });
   };
 
   if (items.isPending) {
@@ -175,12 +267,7 @@ export const GroceryScreen = (): ReactElement => {
 
   return (
     <main className="flex min-h-dvh flex-col bg-slate-50">
-      <TopBar
-        count={counts.total}
-        doneCount={counts.done}
-        online={online}
-        queuedCount={counts.queued}
-      />
+      <TopBar count={counts.total} doneCount={counts.done} queuedCount={counts.queued} />
       {!online && <OfflineBanner queuedCount={counts.queued} />}
       {visibleItems.length === 0 ? (
         <EmptyState />
@@ -190,6 +277,8 @@ export const GroceryScreen = (): ReactElement => {
           syncStates={pending}
           onToggle={handleToggle}
           onRetry={handleRetry}
+          onEdit={handleEditOpen}
+          onRemove={handleRemove}
         />
       )}
       <Fab onClick={() => setDrawerOpen(true)} />
@@ -202,7 +291,68 @@ export const GroceryScreen = (): ReactElement => {
             Name the item, optionally add a description.
           </DrawerDescription>
           <div className="flex max-h-[70dvh] flex-col pt-3 pb-2">
-            <AddItemForm onSubmit={handleCreate} onCancel={() => setDrawerOpen(false)} />
+            {drawerOpen && (
+              <AddItemForm onSubmit={handleCreate} onCancel={() => setDrawerOpen(false)} />
+            )}
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      <Drawer
+        open={editingItem !== null}
+        onOpenChange={(open) => {
+          if (open) return;
+          if (update.isPending) return;
+          setEditingId(null);
+        }}
+      >
+        <DrawerContent className="rounded-t-3xl bg-white">
+          <DrawerTitle className="sr-only">Edit grocery item</DrawerTitle>
+          <DrawerDescription className="sr-only">
+            Change the item name or description.
+          </DrawerDescription>
+          <div className="flex max-h-[70dvh] flex-col pt-3 pb-2">
+            {editingItem !== null && (
+              <EditItemForm
+                initialName={editingItem.name}
+                initialDescription={editingItem.description ?? ""}
+                pending={update.isPending && update.variables?.id === editingItem.id}
+                onSubmit={handleEditSubmit}
+                onCancel={() => setEditingId(null)}
+              />
+            )}
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      <Drawer
+        open={removingItem !== null}
+        onOpenChange={(open) => {
+          if (!open) setRemovingId(null);
+        }}
+      >
+        <DrawerContent className="rounded-t-3xl bg-white">
+          <DrawerTitle className="px-5 pt-2 font-semibold text-lg text-slate-900">
+            Remove {removingItem?.name ?? "item"}?
+          </DrawerTitle>
+          <DrawerDescription className="px-5 pt-1 text-slate-500 text-sm">
+            This can't be undone — the item will be gone for everyone in the household.
+          </DrawerDescription>
+          <div className="flex flex-col gap-2.5 px-5 pt-5 pb-[max(env(safe-area-inset-bottom),1rem)]">
+            <button
+              type="button"
+              onClick={handleConfirmRemove}
+              className="flex min-h-12 w-full items-center justify-center rounded-2xl bg-rose-600 font-medium text-base text-white transition active:scale-[0.98]"
+            >
+              Remove
+            </button>
+            <button
+              type="button"
+              onClick={() => setRemovingId(null)}
+              className="flex min-h-12 w-full items-center justify-center rounded-2xl text-base text-slate-600"
+            >
+              Cancel
+            </button>
           </div>
         </DrawerContent>
       </Drawer>

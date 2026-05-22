@@ -3,7 +3,7 @@ import {
   type GroceryItem,
   type GroceryItemId,
   GroceryItemIdSchema,
-  parseGroceryItemId,
+  type UpdateItemInput,
 } from "@onehouse/app-grocery/shared";
 import * as v from "valibot";
 
@@ -30,7 +30,7 @@ const ItemSchema = v.object({
 
 const ItemListResponseSchema = v.object({ items: v.array(ItemSchema) });
 const ItemEnvelopeSchema = v.object({ item: ItemSchema });
-const DeleteResponseSchema = v.object({ id: v.string() });
+const DeleteResponseSchema = v.object({ id: GroceryItemIdSchema });
 
 const parseJson = async <T>(res: Response, schema: v.GenericSchema<unknown, T>): Promise<T> => {
   if (!res.ok) {
@@ -72,11 +72,26 @@ export const togglePurchased = async (
   return body.item;
 };
 
+export const updateItem = async (
+  id: GroceryItemId,
+  input: UpdateItemInput,
+): Promise<GroceryItem> => {
+  const res = await fetch(`/api/grocery/items/${encodeURIComponent(id)}/content`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const body = await parseJson(res, ItemEnvelopeSchema);
+  return body.item;
+};
+
 export const deleteItem = async (id: GroceryItemId): Promise<void> => {
   const res = await fetch(`/api/grocery/items/${encodeURIComponent(id)}`, {
     method: "DELETE",
     credentials: "include",
   });
+  if (res.status === 404) return;
   const body = await parseJson(res, DeleteResponseSchema);
-  void parseGroceryItemId(body.id);
+  if (body.id !== id) throw new Error("delete: id mismatch");
 };

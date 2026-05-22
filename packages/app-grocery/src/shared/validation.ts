@@ -23,3 +23,15 @@ export const TogglePurchasedInputSchema = v.object({
   purchased: v.boolean(),
 });
 export type TogglePurchasedInput = v.InferOutput<typeof TogglePurchasedInputSchema>;
+
+export const UpdateItemInputSchema = v.pipe(
+  v.object({
+    name: v.optional(NameSchema),
+    description: v.optional(v.nullable(DescriptionSchema)),
+  }),
+  v.check(
+    (input) => input.name !== undefined || input.description !== undefined,
+    "Provide a name or description to update",
+  ),
+);
+export type UpdateItemInput = v.InferOutput<typeof UpdateItemInputSchema>;

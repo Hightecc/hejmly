@@ -8,6 +8,7 @@ import {
   type GroceryError,
   type GroceryItem,
   type GroceryItemId,
+  type UpdateItemInput,
   parseGroceryItemId,
   transition,
 } from "../shared/index.ts";
@@ -17,9 +18,13 @@ import { rowToItem, serializeStatus } from "./serialize.ts";
 export type GroceryService = {
   list(): Promise<GroceryItem[]>;
   create(input: CreateItemInput, by: string): Promise<Result<GroceryItem, GroceryError>>;
+  update(id: GroceryItemId, input: UpdateItemInput): Promise<Result<GroceryItem, GroceryError>>;
   markPurchased(id: GroceryItemId, by: string): Promise<Result<GroceryItem, GroceryError>>;
   markPending(id: GroceryItemId): Promise<Result<GroceryItem, GroceryError>>;
   remove(id: GroceryItemId): Promise<Result<{ id: GroceryItemId }, GroceryError>>;
+  removeIfPurchased(
+    id: GroceryItemId,
+  ): Promise<Result<{ id: GroceryItemId; removed: boolean }, GroceryError>>;
 };
 
 type AuthorJoin = {
@@ -68,6 +73,23 @@ export const createGroceryService = (db: Db): GroceryService => ({
     return ok(rowToItem(row.item, row.author));
   },
 
+  async update(id, input) {
+    if (input.name === undefined && input.description === undefined) {
+      return err({ kind: "invalid_input", message: "Provide a name or description to update" });
+    }
+    const row = await fetchWithAuthor(db, id);
+    if (row === null) return err({ kind: "not_found", id });
+    const patch: { name?: string; description?: string | null; updatedAt: Date } = {
+      updatedAt: new Date(),
+    };
+    if (input.name !== undefined) patch.name = input.name;
+    if (input.description !== undefined) patch.description = input.description;
+    await db.update(groceryItems).set(patch).where(eq(groceryItems.id, id));
+    const updated = await fetchWithAuthor(db, id);
+    if (updated === null) return err({ kind: "not_found", id });
+    return ok(rowToItem(updated.item, updated.author));
+  },
+
   async markPurchased(id, by) {
     const row = await fetchWithAuthor(db, id);
     if (row === null) return err({ kind: "not_found", id });
@@ -110,5 +132,16 @@ export const createGroceryService = (db: Db): GroceryService => ({
     if (row === null) return err({ kind: "not_found", id });
     await db.delete(groceryItems).where(eq(groceryItems.id, id));
     return ok({ id: parseGroceryItemId(id) });
+  },
+
+  async removeIfPurchased(id) {
+    const row = await fetchWithAuthor(db, id);
+    if (row === null) return err({ kind: "not_found", id });
+    const current = rowToItem(row.item, row.author);
+    if (current.status.kind !== "purchased") {
+      return ok({ id: parseGroceryItemId(id), removed: false });
+    }
+    await db.delete(groceryItems).where(eq(groceryItems.id, id));
+    return ok({ id: parseGroceryItemId(id), removed: true });
   },
 });

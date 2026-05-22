@@ -5,6 +5,7 @@ const getInitial = (): boolean => (typeof navigator === "undefined" ? true : nav
 export const useOnlineStatus = (): boolean => {
   const [online, setOnline] = useState<boolean>(getInitial);
   useEffect(() => {
+    setOnline(getInitial());
     const onOnline = (): void => setOnline(true);
     const onOffline = (): void => setOnline(false);
     window.addEventListener("online", onOnline);

@@ -2,6 +2,7 @@ import { ArrowsClockwiseIcon, CheckIcon, WarningCircleIcon } from "@phosphor-ico
 import type { ReactElement } from "react";
 import type { GroceryItem } from "../shared/index.ts";
 import { Avatar } from "./Avatar.tsx";
+import { RowActionsMenu } from "./RowActionsMenu.tsx";
 
 export type ItemSyncState = "synced" | "queued" | "error";
 
@@ -10,6 +11,8 @@ type ItemRowProps = {
   syncState?: ItemSyncState;
   onToggle?: (next: boolean) => void;
   onRetry?: () => void;
+  onEdit?: () => void;
+  onRemove?: () => void;
 };
 
 export const ItemRow = ({
@@ -17,6 +20,8 @@ export const ItemRow = ({
   syncState = "synced",
   onToggle,
   onRetry,
+  onEdit,
+  onRemove,
 }: ItemRowProps): ReactElement => {
   const purchased = item.status.kind === "purchased";
   const queued = syncState === "queued";
@@ -35,7 +40,7 @@ export const ItemRow = ({
       : "text-slate-500";
 
   return (
-    <li className="relative flex min-h-[60px] items-center gap-3 bg-white px-5 py-3.5">
+    <li className="relative flex min-h-[60px] items-center gap-3 bg-white py-3.5 pr-2 pl-5">
       <button
         type="button"
         onClick={onToggle ? () => onToggle(!purchased) : undefined}
@@ -81,8 +86,19 @@ export const ItemRow = ({
         )}
       </div>
 
-      {!queued && !error && <Avatar author={item.addedBy} />}
-      {queued && <ArrowsClockwiseIcon size={16} className="animate-spin text-slate-300" />}
+      <div className="flex shrink-0 items-center gap-1">
+        {!queued && !error && <Avatar author={item.addedBy} />}
+        {queued && <ArrowsClockwiseIcon size={16} className="animate-spin text-slate-300" />}
+        {onRemove && onToggle && onEdit && !queued && !error && (
+          <RowActionsMenu
+            itemName={item.name}
+            purchased={purchased}
+            onToggle={() => onToggle(!purchased)}
+            onEdit={onEdit}
+            onRemove={onRemove}
+          />
+        )}
+      </div>
     </li>
   );
 };

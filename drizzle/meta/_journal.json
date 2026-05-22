@@ -22,6 +22,13 @@
       "when": 1779434304532,
       "tag": "0002_futuristic_norrin_radd",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1779462470661,
+      "tag": "0003_numerous_scarlet_witch",
+      "breakpoints": true
     }
   ]
 }
