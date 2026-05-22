@@ -33,9 +33,15 @@ export const CheckingScreen = (): React.ReactElement => {
   const user = session.data?.user;
 
   useEffect(() => {
-    if (!session.isPending && session.data === null) {
+    if (session.isPending) return;
+    if (session.data === null) {
       router.navigate({ to: "/sign-in" });
+      return;
     }
+    const timer = window.setTimeout(() => {
+      router.navigate({ to: "/grocery" });
+    }, 800);
+    return () => window.clearTimeout(timer);
   }, [session.isPending, session.data, router]);
 
   if (session.isPending || user === undefined) {

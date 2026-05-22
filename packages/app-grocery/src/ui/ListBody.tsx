@@ -1,0 +1,40 @@
+import type { ReactElement } from "react";
+import { type GroceryItem, type GroceryItemId, isPurchased } from "../shared/index.ts";
+import { ItemRow, type ItemSyncState } from "./ItemRow.tsx";
+
+type ListBodyProps = {
+  items: readonly GroceryItem[];
+  syncStates?: ReadonlyMap<GroceryItemId, ItemSyncState>;
+  onToggle?: (id: GroceryItemId, purchased: boolean) => void;
+  onRetry?: (id: GroceryItemId) => void;
+};
+
+const SectionHeading = ({ children }: { children: string }): ReactElement => (
+  <li className="bg-white px-5 pt-5 pb-2 font-semibold text-[11px] text-slate-400 uppercase tracking-[0.12em]">
+    {children}
+  </li>
+);
+
+export const ListBody = ({ items, syncStates, onToggle, onRetry }: ListBodyProps): ReactElement => {
+  const active = items.filter((i) => !isPurchased(i.status));
+  const done = items.filter((i) => isPurchased(i.status));
+  const sync = (id: GroceryItemId): ItemSyncState => syncStates?.get(id) ?? "synced";
+  const rowProps = (it: GroceryItem) => ({
+    item: it,
+    syncState: sync(it.id),
+    ...(onToggle ? { onToggle: (next: boolean) => onToggle(it.id, next) } : {}),
+    ...(onRetry ? { onRetry: () => onRetry(it.id) } : {}),
+  });
+
+  return (
+    <ul className="flex-1 divide-y divide-slate-100 overflow-y-auto bg-white">
+      {active.map((it) => (
+        <ItemRow key={it.id} {...rowProps(it)} />
+      ))}
+      {done.length > 0 && <SectionHeading>{`Got it · ${done.length}`}</SectionHeading>}
+      {done.map((it) => (
+        <ItemRow key={it.id} {...rowProps(it)} />
+      ))}
+    </ul>
+  );
+};

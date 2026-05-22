@@ -5,6 +5,7 @@ import { CheckingScreen } from "@/features/auth/CheckingScreen";
 import { FirstArrivalScreen } from "@/features/auth/FirstArrivalScreen";
 import { RejectedScreen } from "@/features/auth/RejectedScreen";
 import { SignInScreen } from "@/features/auth/SignInScreen";
+import { GroceryScreen } from "@/features/grocery/GroceryScreen";
 
 export const rootRoute = createRootRoute({
   component: Outlet,
@@ -46,7 +47,19 @@ export const welcomeRoute = createRoute({
   component: FirstArrivalScreen,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, signInRoute, rejectedRoute, welcomeRoute]);
+export const groceryRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/grocery",
+  component: GroceryScreen,
+});
+
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  signInRoute,
+  rejectedRoute,
+  welcomeRoute,
+  groceryRoute,
+]);
 
 export const router = createRouter({
   routeTree,
