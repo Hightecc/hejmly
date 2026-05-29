@@ -15,6 +15,20 @@
       "when": 1779431844234,
       "tag": "0001_smooth_invisible_woman",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1779434304532,
+      "tag": "0002_futuristic_norrin_radd",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1779462470661,
+      "tag": "0003_numerous_scarlet_witch",
+      "breakpoints": true
     }
   ]
 }

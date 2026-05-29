@@ -15,7 +15,21 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@onehouse/core": "workspace:*"
+    "@onehouse/core": "workspace:*",
+    "@radix-ui/react-dropdown-menu": "2.1.16",
+    "bunqueue": "2.7.14",
+    "hono": "4.12.21",
+    "ts-pattern": "5.9.0",
+    "ulid": "3.0.2",
+    "valibot": "1.4.0"
   },
-  "devDependencies": {}
+  "peerDependencies": {
+    "@phosphor-icons/react": "^2.1.10",
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@phosphor-icons/react": "2.1.10",
+    "@types/react": "19.2.15",
+    "react": "19.2.0"
+  }
 }

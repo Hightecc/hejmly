@@ -1,3 +1,5 @@
+import { dirname, resolve } from "node:path";
+import { createCleanupScheduler, createGroceryService } from "@onehouse/app-grocery/server";
 import { createAuth, createDb, parseAllowedEmails } from "@onehouse/core/server";
 import { parseRuntimeEnv } from "@onehouse/core/shared";
 import { createApp } from "./composition.ts";
@@ -15,8 +17,31 @@ const auth = createAuth({
   useSecureCookies: process.env.NODE_ENV === "production",
 });
 
-const app = createApp({ auth, baseURL: env.BETTER_AUTH_URL });
+const groceryService = createGroceryService(db);
+const cleanup = createCleanupScheduler({
+  service: groceryService,
+  dataPath: resolve(dirname(env.DATABASE_PATH), "grocery-cleanup.db"),
+});
 
-Bun.serve({ port: env.PORT, fetch: app.fetch });
+const app = createApp({
+  auth,
+  baseURL: env.BETTER_AUTH_URL,
+  grocery: { service: groceryService, cleanup },
+});
+
+const server = Bun.serve({ port: env.PORT, fetch: app.fetch });
+
+let shuttingDown = false;
+const shutdown = async (signal: NodeJS.Signals): Promise<void> => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.info(`onehouse server received ${signal}, shutting down`);
+  await cleanup.close();
+  await server.stop();
+  process.exit(0);
+};
+
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
 
 console.info(`onehouse server listening on http://localhost:${env.PORT}`);

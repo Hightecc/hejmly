@@ -1,11 +1,28 @@
 import { describe, expect, test } from "bun:test";
+import type { CleanupScheduler } from "@onehouse/app-grocery/server";
+import { createGroceryService } from "@onehouse/app-grocery/server";
+import type { Auth, Db } from "@onehouse/core/server";
 import { withTestAuth } from "@onehouse/core/server/test";
 import { createApp } from "./composition.ts";
 
+const noopCleanup: CleanupScheduler = {
+  schedule: async () => {},
+  cancel: async () => {},
+  close: async () => {},
+};
+
+const groceryFor = (db: Db) => ({
+  service: createGroceryService(db),
+  cleanup: noopCleanup,
+});
+
+const appFor = (auth: Auth, db: Db, baseURL = "http://localhost:5173") =>
+  createApp({ auth, baseURL, grocery: groceryFor(db) });
+
 describe("composition", () => {
   test("GET /healthz returns ok", async () => {
-    await withTestAuth({}, async ({ auth }) => {
-      const app = createApp({ auth, baseURL: "http://localhost:5173" });
+    await withTestAuth({}, async ({ auth, db }) => {
+      const app = appFor(auth, db);
       const res = await app.request("/healthz");
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual({ ok: true });
@@ -13,8 +30,8 @@ describe("composition", () => {
   });
 
   test("GET /api/auth/get-session returns 200 with null for anonymous request", async () => {
-    await withTestAuth({}, async ({ auth }) => {
-      const app = createApp({ auth, baseURL: "http://localhost:5173" });
+    await withTestAuth({}, async ({ auth, db }) => {
+      const app = appFor(auth, db);
       const res = await app.request("/api/auth/get-session");
       expect(res.status).toBe(200);
       expect(await res.json()).toBeNull();
@@ -22,8 +39,8 @@ describe("composition", () => {
   });
 
   test("GET /api/me without a session returns 401", async () => {
-    await withTestAuth({}, async ({ auth }) => {
-      const app = createApp({ auth, baseURL: "http://localhost:5173" });
+    await withTestAuth({}, async ({ auth, db }) => {
+      const app = appFor(auth, db);
       const res = await app.request("/api/me");
       expect(res.status).toBe(401);
       expect(await res.json()).toEqual({ error: "unauthorized" });
@@ -33,7 +50,7 @@ describe("composition", () => {
   test("GET /api/me with a valid session returns the user", async () => {
     await withTestAuth(
       { allowedEmails: "basile@example.com" },
-      async ({ auth, signSessionCookie }) => {
+      async ({ auth, db, signSessionCookie }) => {
         const ctx = await auth.$context;
         const user = await ctx.internalAdapter.createUser({
           name: "Basile",
@@ -42,7 +59,7 @@ describe("composition", () => {
         const sessionRow = await ctx.internalAdapter.createSession(user.id);
         const signed = await signSessionCookie(sessionRow.token);
 
-        const app = createApp({ auth, baseURL: "http://localhost:5173" });
+        const app = appFor(auth, db);
         const res = await app.request("/api/me", {
           headers: { cookie: `onehouse.session_token=${signed}` },
         });

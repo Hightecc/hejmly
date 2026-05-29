@@ -27,15 +27,29 @@ const deriveIdentity = (
   return fallbackIdentity;
 };
 
+const WELCOME_DELAY_MS = 800;
+
+const prefersReducedMotion = (): boolean =>
+  typeof window !== "undefined" &&
+  typeof window.matchMedia === "function" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 export const CheckingScreen = (): React.ReactElement => {
   const router = useRouter();
   const session = useSession();
   const user = session.data?.user;
 
   useEffect(() => {
-    if (!session.isPending && session.data === null) {
+    if (session.isPending) return;
+    if (session.data === null) {
       router.navigate({ to: "/sign-in" });
+      return;
     }
+    const delay = prefersReducedMotion() ? 0 : WELCOME_DELAY_MS;
+    const timer = window.setTimeout(() => {
+      router.navigate({ to: "/grocery" });
+    }, delay);
+    return () => window.clearTimeout(timer);
   }, [session.isPending, session.data, router]);
 
   if (session.isPending || user === undefined) {
