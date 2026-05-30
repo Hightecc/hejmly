@@ -1,4 +1,4 @@
-import { type UserId, parseUserId } from "@onehouse/core/shared";
+import { UserIdSchema, parseUserId } from "@onehouse/core/shared";
 import * as v from "valibot";
 import {
   type GroceryAuthor,
@@ -13,7 +13,7 @@ const StoredStatusSchema = v.union([
   v.object({
     kind: v.literal("purchased"),
     purchasedAt: v.number(),
-    purchasedBy: v.pipe(v.string(), v.minLength(1), v.brand("UserId")),
+    purchasedBy: UserIdSchema,
   }),
 ]);
 
@@ -39,16 +39,19 @@ const initialOf = (name: string): string => {
   return first.charAt(0).toUpperCase();
 };
 
-const UNKNOWN_AUTHOR_ID: UserId = parseUserId("unknown");
-
-const toAuthor = (
+export const toAuthor = (
   user: { id: string; name: string | null; email: string | null } | null,
 ): GroceryAuthor => {
-  if (user === null) return { id: UNKNOWN_AUTHOR_ID, name: "Someone", initial: "·" };
+  if (user === null) return { kind: "unknown", name: "Someone", initial: "·" };
   const trimmedName = user.name?.trim();
   const displayName =
     trimmedName !== undefined && trimmedName.length > 0 ? trimmedName : (user.email ?? "Someone");
-  return { id: parseUserId(user.id), name: displayName, initial: initialOf(displayName) };
+  return {
+    kind: "user",
+    id: parseUserId(user.id),
+    name: displayName,
+    initial: initialOf(displayName),
+  };
 };
 
 export const rowToItem = (
