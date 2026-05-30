@@ -13,7 +13,7 @@ const isValidationError = (err: unknown): boolean =>
 export type ComposeOptions = {
   auth: Auth;
   baseURL: string;
-  jwksOrigin?: string;
+  jwksOrigin: string;
   allowedHosts: readonly string[];
   audit: AuditRecorder;
   grocery: {
@@ -40,7 +40,7 @@ export const createApp = ({
       "/",
       mountMcp({
         baseURL,
-        jwksOrigin: jwksOrigin ?? baseURL,
+        jwksOrigin,
         allowedHosts,
         service: grocery.service,
         audit,

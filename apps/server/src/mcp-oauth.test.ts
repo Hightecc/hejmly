@@ -65,6 +65,7 @@ describe("MCP over OAuth (end-to-end)", () => {
         app = createApp({
           auth,
           baseURL,
+          jwksOrigin: baseURL,
           allowedHosts: [`localhost:${server.port}`],
           audit: createAuditRecorder(db),
           grocery: { service: createGroceryService(db), cleanup: noopCleanup },

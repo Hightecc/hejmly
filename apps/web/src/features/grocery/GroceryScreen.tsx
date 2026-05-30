@@ -85,6 +85,21 @@ export const GroceryScreen = (): ReactElement => {
     });
   };
 
+  useEffect(() => {
+    if (items.data === undefined) return;
+    setPending((prev) => {
+      let changed = false;
+      const next = new Map(prev);
+      for (const [id, state] of prev) {
+        if (state === "error") {
+          next.delete(id);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [items.data]);
+
   const create = useMutation({
     mutationFn: createItem,
     onMutate: async (input: CreateItemInput) => {

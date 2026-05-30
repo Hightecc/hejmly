@@ -21,6 +21,7 @@ const appFor = (auth: Auth, db: Db, baseURL = "http://localhost:5173") =>
   createApp({
     auth,
     baseURL,
+    jwksOrigin: baseURL,
     allowedHosts: ["localhost", "localhost:5173"],
     audit: createAuditRecorder(db),
     grocery: groceryFor(db),
