@@ -20,7 +20,7 @@ export const LoginScaffold = ({
         home screen.
       </h1>
       <p className="mt-3 max-w-[280px] text-[15px] text-slate-500 leading-relaxed">
-        One quiet place for the small things you share — groceries, chores, the calendar.
+        One quiet place for the small things you share.
       </p>
     </div>
 
