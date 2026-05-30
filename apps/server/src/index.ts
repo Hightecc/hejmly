@@ -1,5 +1,6 @@
 import { dirname, resolve } from "node:path";
 import { createCleanupScheduler, createGroceryService } from "@onehouse/app-grocery/server";
+import { createRecipeService } from "@onehouse/app-recipes/server";
 import {
   createAssistantsService,
   createAuditRecorder,
@@ -33,6 +34,7 @@ const auth = createAuth({
 });
 
 const groceryService = createGroceryService(db);
+const recipeService = createRecipeService(db);
 const assistantsService = createAssistantsService(db);
 const audit = createAuditRecorder(db);
 const cleanup = createCleanupScheduler({
@@ -48,6 +50,7 @@ const app = createApp({
   audit,
   assistants: { service: assistantsService },
   grocery: { service: groceryService, cleanup },
+  recipes: { service: recipeService },
 });
 
 const server = Bun.serve({ port: env.PORT, fetch: app.fetch });

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { CleanupScheduler } from "@onehouse/app-grocery/server";
 import { createGroceryService } from "@onehouse/app-grocery/server";
+import { createRecipeService } from "@onehouse/app-recipes/server";
 import { createAssistantsService, createAuditRecorder } from "@onehouse/core/server";
 import type { Auth, Db } from "@onehouse/core/server";
 import { withTestAuth } from "@onehouse/core/server/test";
@@ -26,6 +27,7 @@ const appFor = (auth: Auth, db: Db, baseURL = "http://localhost:5173") =>
     audit: createAuditRecorder(db),
     assistants: { service: createAssistantsService(db) },
     grocery: groceryFor(db),
+    recipes: { service: createRecipeService(db) },
   });
 
 describe("composition", () => {

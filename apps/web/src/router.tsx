@@ -10,6 +10,9 @@ import { RejectedScreen } from "@/features/auth/RejectedScreen";
 import { SignInScreen } from "@/features/auth/SignInScreen";
 import { GroceryScreen } from "@/features/grocery/GroceryScreen";
 import { MeScreen } from "@/features/me/MeScreen";
+import { CreateRecipeScreen } from "@/features/recipes/CreateRecipeScreen";
+import { EditRecipeScreen } from "@/features/recipes/EditRecipeScreen";
+import { RecipeDetailScreen } from "@/features/recipes/RecipeDetailScreen";
 import { RecipesScreen } from "@/features/recipes/RecipesScreen";
 
 export const rootRoute = createRootRoute({
@@ -76,6 +79,42 @@ export const recipesRoute = createRoute({
   ),
 });
 
+export const newRecipeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/recipes/new",
+  component: () => (
+    <AuthGuard>
+      <CreateRecipeScreen />
+    </AuthGuard>
+  ),
+});
+
+export const recipeDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/recipes/$recipeId",
+  component: () => {
+    const { recipeId } = recipeDetailRoute.useParams();
+    return (
+      <AuthGuard>
+        <RecipeDetailScreen recipeId={recipeId} />
+      </AuthGuard>
+    );
+  },
+});
+
+export const editRecipeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/recipes/$recipeId/edit",
+  component: () => {
+    const { recipeId } = editRecipeRoute.useParams();
+    return (
+      <AuthGuard>
+        <EditRecipeScreen recipeId={recipeId} />
+      </AuthGuard>
+    );
+  },
+});
+
 export const appsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/apps",
@@ -117,6 +156,9 @@ const routeTree = rootRoute.addChildren([
   welcomeRoute,
   groceryRoute,
   recipesRoute,
+  newRecipeRoute,
+  recipeDetailRoute,
+  editRecipeRoute,
   appsRoute,
   meRoute,
   consentRoute,

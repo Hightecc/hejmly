@@ -13,6 +13,7 @@
   "dependencies": {
     "@onehouse/core": "workspace:*",
     "@onehouse/app-grocery": "workspace:*",
+    "@onehouse/app-recipes": "workspace:*",
     "hono": "4.12.21"
   },
   "devDependencies": {}

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { CleanupScheduler } from "@onehouse/app-grocery/server";
 import { createGroceryService } from "@onehouse/app-grocery/server";
+import { createRecipeService } from "@onehouse/app-recipes/server";
 import { type Db, createAssistantsService, createAuditRecorder } from "@onehouse/core/server";
 import { withTestAuth } from "@onehouse/core/server/test";
 import { type AppType, createApp } from "./composition.ts";
@@ -90,6 +91,7 @@ const withMcpServer = async (run: (h: McpHarness) => Promise<void>): Promise<voi
           audit: createAuditRecorder(db),
           assistants: { service: createAssistantsService(db) },
           grocery: { service: createGroceryService(db), cleanup: noopCleanup },
+          recipes: { service: createRecipeService(db) },
         });
 
         await run({ baseURL, cookie, userId: user.id, db });

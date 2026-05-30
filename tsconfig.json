@@ -4,6 +4,7 @@
   "references": [
     { "path": "./packages/core" },
     { "path": "./packages/app-grocery" },
+    { "path": "./packages/app-recipes" },
     { "path": "./apps/server" },
     { "path": "./apps/web" }
   ]

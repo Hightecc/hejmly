@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 
 @source "../../../packages/app-grocery/src/ui/**/*.{ts,tsx}";
+@source "../../../packages/app-recipes/src/ui/**/*.{ts,tsx}";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -79,6 +80,20 @@
   --border: oklch(0.279 0.041 260.03);
   --input: oklch(0.279 0.041 260.03);
   --ring: oklch(0.704 0.04 256.79);
+}
+
+@keyframes oh-ring {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(0 0 0 / 0);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgb(16 185 129 / 0.18);
+  }
+}
+
+@utility animate-oh-ring {
+  animation: oh-ring 1s ease-in-out infinite;
 }
 
 @layer base {
