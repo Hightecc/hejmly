@@ -6,7 +6,6 @@ import { type ReactElement, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { useTabNav } from "@/components/useTabNav";
-import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { signOut, useSession } from "@/lib/auth-client";
 import { fetchAssistants, revokeAssistant } from "@/lib/me-api";
 import { AssistantsSection } from "./atoms/AssistantsSection";
@@ -33,7 +32,6 @@ const deriveIdentity = (
 export const MeScreen = (): ReactElement => {
   const router = useRouter();
   const tabNav = useTabNav();
-  const online = useOnlineStatus();
   const qc = useQueryClient();
   const session = useSession();
   const identity = deriveIdentity(session.data?.user);
@@ -117,7 +115,7 @@ export const MeScreen = (): ReactElement => {
 
   return (
     <main className="flex min-h-dvh flex-col bg-slate-50">
-      <MeTopBar online={online} />
+      <MeTopBar />
       <div className="flex-1 overflow-y-auto">
         <IdentityRow
           userId={identity.userId}
