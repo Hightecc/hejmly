@@ -6,10 +6,30 @@ import { createAuditRecorder } from "@onehouse/core/server";
 import type { Auth, Db } from "@onehouse/core/server";
 import { withTestAuth } from "@onehouse/core/server/test";
 import { type UserId, parseUserId } from "@onehouse/core/shared";
+import type { CleanupScheduler } from "../server/index.ts";
 import { createGroceryService } from "../server/index.ts";
+import { type GroceryItemId, parseGroceryItemId } from "../shared/index.ts";
 import { registerGroceryTools } from "./index.ts";
 
 const TEST_EMAIL = "basile@example.com";
+
+type CleanupCalls = { scheduled: GroceryItemId[]; cancelled: GroceryItemId[] };
+
+const createStubCleanup = (): { scheduler: CleanupScheduler; calls: CleanupCalls } => {
+  const calls: CleanupCalls = { scheduled: [], cancelled: [] };
+  const scheduler: CleanupScheduler = {
+    async schedule(id) {
+      calls.scheduled.push(id);
+    },
+    async cancel(id) {
+      calls.cancelled.push(id);
+    },
+    async close() {},
+  };
+  return { scheduler, calls };
+};
+
+const noopCleanup = createStubCleanup().scheduler;
 
 const seedUser = async (auth: Auth): Promise<UserId> => {
   const ctx = await auth.$context;
@@ -17,12 +37,17 @@ const seedUser = async (auth: Auth): Promise<UserId> => {
   return parseUserId(user.id);
 };
 
-const connect = async (db: Db, actor: UserId): Promise<Client> => {
+const connect = async (
+  db: Db,
+  actor: UserId,
+  cleanup: CleanupScheduler = noopCleanup,
+): Promise<Client> => {
   const server = new McpServer({ name: "onehouse-test", version: "1.0.0" });
   registerGroceryTools(server, {
     service: createGroceryService(db),
     actor,
     audit: createAuditRecorder(db),
+    cleanup,
   });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "test-client", version: "1.0.0" });
@@ -161,6 +186,25 @@ describe("grocery MCP tools", () => {
         arguments: { itemId: "does-not-exist" },
       });
       expect(result.isError).toBe(true);
+    });
+  });
+
+  test("mark_purchased schedules cleanup; mark_pending and remove cancel it", async () => {
+    await withTestAuth({ allowedEmails: TEST_EMAIL }, async ({ auth, db }) => {
+      const { scheduler, calls } = createStubCleanup();
+      const client = await connect(db, await seedUser(auth), scheduler);
+      const added = await client.callTool({
+        name: "grocery.add_item",
+        arguments: { name: "Eggs" },
+      });
+      const itemId = itemIdOf(added);
+
+      await client.callTool({ name: "grocery.mark_purchased", arguments: { itemId } });
+      expect(calls.scheduled).toEqual([parseGroceryItemId(itemId)]);
+
+      await client.callTool({ name: "grocery.mark_pending", arguments: { itemId } });
+      await client.callTool({ name: "grocery.remove_item", arguments: { itemId } });
+      expect(calls.cancelled).toEqual([parseGroceryItemId(itemId), parseGroceryItemId(itemId)]);
     });
   });
 });

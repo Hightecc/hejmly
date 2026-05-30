@@ -1,4 +1,4 @@
-import { parseUserId } from "@onehouse/core/shared";
+import { UserIdSchema, parseUserId } from "@onehouse/core/shared";
 import * as v from "valibot";
 import {
   type GroceryAuthor,
@@ -13,7 +13,7 @@ const StoredStatusSchema = v.union([
   v.object({
     kind: v.literal("purchased"),
     purchasedAt: v.number(),
-    purchasedBy: v.pipe(v.string(), v.minLength(1), v.brand("UserId")),
+    purchasedBy: UserIdSchema,
   }),
 ]);
 

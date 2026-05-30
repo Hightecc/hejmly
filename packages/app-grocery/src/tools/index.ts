@@ -3,13 +3,22 @@ import type { AuditRecorder } from "@onehouse/core/server";
 import type { UserId } from "@onehouse/core/shared";
 import { match } from "ts-pattern";
 import * as z from "zod";
-import type { GroceryService } from "../server/index.ts";
+import type { CleanupScheduler, GroceryService } from "../server/index.ts";
 import { type GroceryError, type GroceryItem, parseGroceryItemId } from "../shared/index.ts";
 
 export type GroceryToolDeps = {
   service: GroceryService;
   actor: UserId;
   audit: AuditRecorder;
+  cleanup: CleanupScheduler;
+};
+
+const safely = async (label: string, p: Promise<void>): Promise<void> => {
+  try {
+    await p;
+  } catch (e) {
+    console.error(`grocery cleanup ${label} failed`, e);
+  }
 };
 
 const itemText = (item: GroceryItem): string => {
@@ -36,7 +45,7 @@ const itemResult = (text: string, item: GroceryItem) => ({
 });
 
 export const registerGroceryTools = (server: McpServer, deps: GroceryToolDeps): void => {
-  const { service, actor, audit } = deps;
+  const { service, actor, audit, cleanup } = deps;
 
   server.registerTool(
     "grocery.list_items",
@@ -102,6 +111,7 @@ export const registerGroceryTools = (server: McpServer, deps: GroceryToolDeps): 
         via: "mcp",
         metadata: { itemId: result.value.id },
       });
+      await safely("schedule", cleanup.schedule(result.value.id));
       return itemResult(`Marked "${result.value.name}" as purchased.`, result.value);
     },
   );
@@ -122,6 +132,7 @@ export const registerGroceryTools = (server: McpServer, deps: GroceryToolDeps): 
         via: "mcp",
         metadata: { itemId: result.value.id },
       });
+      await safely("cancel", cleanup.cancel(result.value.id));
       return itemResult(`Moved "${result.value.name}" back to pending.`, result.value);
     },
   );
@@ -166,6 +177,7 @@ export const registerGroceryTools = (server: McpServer, deps: GroceryToolDeps): 
         via: "mcp",
         metadata: { itemId: result.value.id },
       });
+      await safely("cancel", cleanup.cancel(result.value.id));
       return {
         content: [{ type: "text" as const, text: `Removed item ${result.value.id}.` }],
         structuredContent: { id: result.value.id },

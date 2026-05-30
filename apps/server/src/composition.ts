@@ -44,6 +44,7 @@ export const createApp = ({
         allowedHosts,
         service: grocery.service,
         audit,
+        cleanup: grocery.cleanup,
       }),
     )
     .use("/api/*", createRequireSession(auth))

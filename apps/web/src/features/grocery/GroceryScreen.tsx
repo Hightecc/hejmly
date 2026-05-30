@@ -3,9 +3,10 @@ import type {
   GroceryAuthor,
   GroceryItem,
   GroceryItemId,
+  GroceryTransition,
   UpdateItemInput,
 } from "@onehouse/app-grocery/shared";
-import { isPurchased, parseGroceryItemId } from "@onehouse/app-grocery/shared";
+import { isPurchased, parseGroceryItemId, transition } from "@onehouse/app-grocery/shared";
 import {
   AddItemForm,
   BottomNav,
@@ -19,8 +20,9 @@ import {
   TopBar,
 } from "@onehouse/app-grocery/ui";
 import { parseUserId } from "@onehouse/core/shared";
+import { WarningCircleIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type ReactElement, useEffect, useMemo, useState } from "react";
+import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { match } from "ts-pattern";
 
@@ -101,10 +103,9 @@ export const GroceryScreen = (): ReactElement => {
   }, [items.data]);
 
   const create = useMutation({
-    mutationFn: createItem,
-    onMutate: async (input: CreateItemInput) => {
+    mutationFn: ({ input }: { input: CreateItemInput; tempId: GroceryItemId }) => createItem(input),
+    onMutate: async ({ input, tempId }) => {
       await qc.cancelQueries({ queryKey: ITEMS_QUERY_KEY });
-      const tempId = parseGroceryItemId(`${TEMP_ID_PREFIX}${crypto.randomUUID()}`);
       const optimistic: GroceryItem = {
         id: tempId,
         name: input.name,
@@ -114,17 +115,18 @@ export const GroceryScreen = (): ReactElement => {
         updatedAt: Date.now(),
         addedBy: identity,
       };
-      const previous = qc.getQueryData<GroceryItem[]>(ITEMS_QUERY_KEY) ?? [];
-      qc.setQueryData<GroceryItem[]>(ITEMS_QUERY_KEY, [optimistic, ...previous]);
+      qc.setQueryData<GroceryItem[]>(ITEMS_QUERY_KEY, (current) => {
+        const list = current ?? [];
+        return list.some((i) => i.id === tempId)
+          ? list.map((i) => (i.id === tempId ? optimistic : i))
+          : [optimistic, ...list];
+      });
       setSync(tempId, "queued");
-      return { tempId, previous };
+      return { tempId };
     },
     onError: (_e, _vars, ctx) => {
-      if (ctx) {
-        qc.setQueryData<GroceryItem[]>(ITEMS_QUERY_KEY, ctx.previous);
-        setSync(ctx.tempId, null);
-      }
-      toast.error("Could not add item");
+      if (ctx) setSync(ctx.tempId, "error");
+      toast.error("Could not add item — tap retry");
     },
     onSuccess: (saved, _vars, ctx) => {
       if (!ctx) return;
@@ -140,33 +142,32 @@ export const GroceryScreen = (): ReactElement => {
       togglePurchased(id, purchased),
     onMutate: async ({ id, purchased }) => {
       await qc.cancelQueries({ queryKey: ITEMS_QUERY_KEY });
-      const previous = qc.getQueryData<GroceryItem[]>(ITEMS_QUERY_KEY) ?? [];
+      const prevItem = (qc.getQueryData<GroceryItem[]>(ITEMS_QUERY_KEY) ?? []).find(
+        (i) => i.id === id,
+      );
+      const at = Date.now();
+      const t: GroceryTransition =
+        purchased && identity.kind === "user"
+          ? { kind: "mark_purchased", by: identity.id, at }
+          : { kind: "mark_pending" };
       qc.setQueryData<GroceryItem[]>(ITEMS_QUERY_KEY, (current) =>
-        (current ?? []).map((i) =>
-          i.id === id
-            ? {
-                ...i,
-                status:
-                  purchased && identity.kind === "user"
-                    ? {
-                        kind: "purchased",
-                        purchasedAt: Date.now(),
-                        purchasedBy: identity.id,
-                      }
-                    : { kind: "pending" },
-                updatedAt: Date.now(),
-              }
-            : i,
-        ),
+        (current ?? []).map((i) => {
+          if (i.id !== id) return i;
+          const next = transition(i.status, t);
+          return { ...i, status: next.kind === "ok" ? next.value : i.status, updatedAt: at };
+        }),
       );
       setSync(id, "queued");
-      return { previous, id };
+      return { prevItem, id };
     },
     onError: (_e, _vars, ctx) => {
-      if (ctx) {
-        qc.setQueryData<GroceryItem[]>(ITEMS_QUERY_KEY, ctx.previous);
-        setSync(ctx.id, "error");
+      if (ctx?.prevItem !== undefined) {
+        const restore = ctx.prevItem;
+        qc.setQueryData<GroceryItem[]>(ITEMS_QUERY_KEY, (current) =>
+          (current ?? []).map((i) => (i.id === restore.id ? restore : i)),
+        );
       }
+      if (ctx) setSync(ctx.id, "error");
       toast.error("Could not update item");
     },
     onSuccess: (saved, _vars, ctx) => {
@@ -183,7 +184,9 @@ export const GroceryScreen = (): ReactElement => {
       updateItem(id, input),
     onMutate: async ({ id, input }) => {
       await qc.cancelQueries({ queryKey: ITEMS_QUERY_KEY });
-      const previous = qc.getQueryData<GroceryItem[]>(ITEMS_QUERY_KEY) ?? [];
+      const prevItem = (qc.getQueryData<GroceryItem[]>(ITEMS_QUERY_KEY) ?? []).find(
+        (i) => i.id === id,
+      );
       qc.setQueryData<GroceryItem[]>(ITEMS_QUERY_KEY, (current) =>
         (current ?? []).map((i) =>
           i.id === id
@@ -197,13 +200,16 @@ export const GroceryScreen = (): ReactElement => {
         ),
       );
       setSync(id, "queued");
-      return { previous, id };
+      return { prevItem, id };
     },
     onError: (_e, _vars, ctx) => {
-      if (ctx) {
-        qc.setQueryData<GroceryItem[]>(ITEMS_QUERY_KEY, ctx.previous);
-        setSync(ctx.id, "error");
+      if (ctx?.prevItem !== undefined) {
+        const restore = ctx.prevItem;
+        qc.setQueryData<GroceryItem[]>(ITEMS_QUERY_KEY, (current) =>
+          (current ?? []).map((i) => (i.id === restore.id ? restore : i)),
+        );
       }
+      if (ctx) setSync(ctx.id, "error");
       toast.error("Could not update item");
     },
     onSuccess: (saved, _vars, ctx) => {
@@ -220,15 +226,25 @@ export const GroceryScreen = (): ReactElement => {
     mutationFn: (id: GroceryItemId) => deleteItem(id),
     onMutate: async (id: GroceryItemId) => {
       await qc.cancelQueries({ queryKey: ITEMS_QUERY_KEY });
-      const previous = qc.getQueryData<GroceryItem[]>(ITEMS_QUERY_KEY) ?? [];
+      const list = qc.getQueryData<GroceryItem[]>(ITEMS_QUERY_KEY) ?? [];
+      const index = list.findIndex((i) => i.id === id);
+      const prevItem = index >= 0 ? list[index] : undefined;
       qc.setQueryData<GroceryItem[]>(ITEMS_QUERY_KEY, (current) =>
         (current ?? []).filter((i) => i.id !== id),
       );
       setSync(id, null);
-      return { previous };
+      return { index, prevItem };
     },
     onError: (_e, _vars, ctx) => {
-      if (ctx) qc.setQueryData<GroceryItem[]>(ITEMS_QUERY_KEY, ctx.previous);
+      if (ctx?.prevItem !== undefined) {
+        const restore = ctx.prevItem;
+        const at = ctx.index;
+        qc.setQueryData<GroceryItem[]>(ITEMS_QUERY_KEY, (current) => {
+          const next = [...(current ?? [])];
+          next.splice(Math.min(Math.max(at, 0), next.length), 0, restore);
+          return next;
+        });
+      }
       toast.error("Could not remove item");
     },
   });
@@ -242,11 +258,21 @@ export const GroceryScreen = (): ReactElement => {
     return { total, done, queued };
   }, [visibleItems, pending]);
 
+  const wasOnline = useRef(online);
   useEffect(() => {
-    if (online) {
+    if (online && !wasOnline.current) {
       void qc.invalidateQueries({ queryKey: ITEMS_QUERY_KEY });
     }
+    wasOnline.current = online;
   }, [online, qc]);
+
+  useEffect(() => {
+    if (drawer.kind !== "edit" && drawer.kind !== "remove") return;
+    if (items.data === undefined) return;
+    if (items.data.some((i) => i.id === drawer.id)) return;
+    setDrawer(DRAWER_NONE);
+    toast.info("That item was removed");
+  }, [drawer, items.data]);
 
   const handleToggle = (id: GroceryItemId, purchased: boolean): void => {
     if (isTempId(id)) return;
@@ -254,14 +280,22 @@ export const GroceryScreen = (): ReactElement => {
   };
 
   const handleRetry = (id: GroceryItemId): void => {
-    if (isTempId(id)) return;
     const item = visibleItems.find((i) => i.id === id);
     if (item === undefined) return;
+    if (isTempId(id)) {
+      const input: CreateItemInput =
+        item.description !== null
+          ? { name: item.name, description: item.description }
+          : { name: item.name };
+      create.mutate({ input, tempId: id });
+      return;
+    }
     toggle.mutate({ id, purchased: !isPurchased(item.status) });
   };
 
   const handleCreate = (input: CreateItemInput): void => {
-    create.mutate(input);
+    const tempId = parseGroceryItemId(`${TEMP_ID_PREFIX}${crypto.randomUUID()}`);
+    create.mutate({ input, tempId });
     setDrawer(DRAWER_NONE);
   };
 
@@ -288,6 +322,28 @@ export const GroceryScreen = (): ReactElement => {
     return (
       <main className="flex min-h-dvh flex-col bg-slate-50">
         <ListSkeleton />
+        <BottomNav active="grocery" />
+      </main>
+    );
+  }
+
+  if (items.isError) {
+    return (
+      <main className="flex min-h-dvh flex-col bg-slate-50">
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center">
+          <WarningCircleIcon size={40} weight="fill" className="text-slate-300" />
+          <div>
+            <p className="font-medium text-base text-slate-900">Couldn't load your list</p>
+            <p className="mt-1 text-slate-500 text-sm">Check your connection and try again.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void items.refetch()}
+            className="flex min-h-11 items-center justify-center rounded-2xl bg-slate-900 px-6 font-medium text-base text-white transition active:scale-[0.98]"
+          >
+            Try again
+          </button>
+        </div>
         <BottomNav active="grocery" />
       </main>
     );
