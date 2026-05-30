@@ -66,6 +66,7 @@ export const groceryRoute = createRoute({
 const consentSearchSchema = v.object({
   client_id: v.optional(v.string()),
   scope: v.optional(v.string()),
+  redirect_uri: v.optional(v.string()),
 });
 
 export const consentRoute = createRoute({

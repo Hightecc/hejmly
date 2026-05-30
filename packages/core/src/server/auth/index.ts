@@ -26,6 +26,7 @@ export const createAuth = (opts: CreateAuthOptions) => {
       allowDynamicClientRegistration: true,
       allowUnauthenticatedClientRegistration: true,
       requirePKCE: true,
+      silenceWarnings: { oauthAuthServerConfig: true },
     }),
   ];
 

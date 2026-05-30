@@ -3,7 +3,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createAuditRecorder } from "@onehouse/core/server";
-import type { Auth, Db } from "@onehouse/core/server";
+import type { AuditRecorder, Auth, Db } from "@onehouse/core/server";
 import { withTestAuth } from "@onehouse/core/server/test";
 import { type UserId, parseUserId } from "@onehouse/core/shared";
 import type { CleanupScheduler } from "../server/index.ts";
@@ -186,6 +186,36 @@ describe("grocery MCP tools", () => {
         arguments: { itemId: "does-not-exist" },
       });
       expect(result.isError).toBe(true);
+    });
+  });
+
+  test("a failing audit recorder does not fail the tool call", async () => {
+    await withTestAuth({ allowedEmails: TEST_EMAIL }, async ({ auth, db }) => {
+      const actor = await seedUser(auth);
+      const failingAudit: AuditRecorder = {
+        record: async () => {
+          throw new Error("audit unavailable");
+        },
+      };
+      const server = new McpServer({ name: "onehouse-test", version: "1.0.0" });
+      registerGroceryTools(server, {
+        service: createGroceryService(db),
+        actor,
+        audit: failingAudit,
+        cleanup: noopCleanup,
+      });
+      const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+      const client = new Client({ name: "test-client", version: "1.0.0" });
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+
+      const result = await client.callTool({
+        name: "grocery.add_item",
+        arguments: { name: "Milk" },
+      });
+      expect(result.isError).toBeFalsy();
+      expect(result.structuredContent).toMatchObject({ item: { name: "Milk" } });
+      expect(db.$client.query("SELECT name FROM grocery_items").all()).toEqual([{ name: "Milk" }]);
     });
   });
 

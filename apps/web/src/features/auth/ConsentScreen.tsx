@@ -23,9 +23,20 @@ const SCOPE_LABELS: Record<string, string> = {
 
 const describeScope = (scope: string): string => SCOPE_LABELS[scope] ?? scope;
 
+const hostFromRedirect = (redirectUri: string | undefined): string | null => {
+  if (redirectUri === undefined) return null;
+  try {
+    return new URL(redirectUri).host;
+  } catch {
+    return null;
+  }
+};
+
 export const ConsentScreen = (): React.ReactElement => {
-  const { client_id, scope } = consentRoute.useSearch();
+  const { client_id, scope, redirect_uri } = consentRoute.useSearch();
   const [status, setStatus] = useState<Status>({ kind: "idle" });
+
+  const appLabel = hostFromRedirect(redirect_uri) ?? client_id;
 
   const scopes = (scope ?? "").split(" ").filter((value) => value.length > 0);
   const submitting = status.kind === "submitting";
@@ -55,9 +66,9 @@ export const ConsentScreen = (): React.ReactElement => {
           Connect an app?
         </h1>
         <p className="mt-3 max-w-[300px] text-[15px] text-slate-500 leading-relaxed">
-          {client_id === undefined
+          {appLabel === undefined
             ? "An application wants to connect to your Onehouse account."
-            : `“${client_id}” wants to connect to your Onehouse account.`}
+            : `“${appLabel}” wants to connect to your Onehouse account.`}
         </p>
 
         {scopes.length > 0 ? (
