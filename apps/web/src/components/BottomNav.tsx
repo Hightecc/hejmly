@@ -27,7 +27,7 @@ export const BottomNav = ({ active }: { active: NavTab }): ReactElement => (
           to={to}
           aria-current={on ? "page" : undefined}
           className={cn(
-            "flex flex-1 flex-col items-center justify-center gap-0.5",
+            "flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5",
             on ? "text-slate-900" : "text-slate-400",
           )}
         >
