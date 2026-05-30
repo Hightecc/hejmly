@@ -13,7 +13,7 @@ export const TimerBar = (): ReactElement | null => {
   if (entries.length === 0) return null;
 
   return (
-    <div className="shrink-0 space-y-2 border-slate-100 border-t bg-slate-50 px-3 py-2">
+    <div className="shrink-0 divide-y divide-white/10">
       {entries.map(([id, timer]) => {
         const display = match(viewTimer(timer, now))
           .with({ kind: "idle" }, () => ({ done: false, fraction: 0, clock: formatClock(0) }))
@@ -29,7 +29,7 @@ export const TimerBar = (): ReactElement | null => {
           <div
             key={id}
             className={cn(
-              "relative flex items-center gap-3 overflow-hidden rounded-2xl bg-slate-900 px-3.5 py-2.5 text-white shadow-lg shadow-slate-900/25",
+              "relative flex items-center gap-3 overflow-hidden bg-slate-900 px-5 py-3 text-white",
               display.done && "animate-oh-ring",
             )}
           >
@@ -63,12 +63,12 @@ export const TimerBar = (): ReactElement | null => {
               type="button"
               onClick={() => cancel(id)}
               aria-label={`Stop ${timer.label} timer`}
-              className="relative grid size-7 place-items-center rounded-full bg-white/10 transition active:bg-white/20"
+              className="relative grid size-9 place-items-center rounded-full bg-white/10 transition active:bg-white/20"
             >
               {display.done ? (
-                <CheckIcon size={13} weight="bold" />
+                <CheckIcon size={14} weight="bold" />
               ) : (
-                <XIcon size={13} weight="bold" />
+                <XIcon size={14} weight="bold" />
               )}
             </button>
           </div>
