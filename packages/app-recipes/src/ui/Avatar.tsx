@@ -11,7 +11,7 @@ export const Avatar = ({ cook, size = 24 }: AvatarProps): ReactElement => {
       role="img"
       aria-label={cook.name}
       title={cook.name}
-      className="grid shrink-0 place-items-center rounded-full font-semibold"
+      className="grid shrink-0 place-items-center rounded-full font-semibold leading-none"
       style={{
         width: size,
         height: size,

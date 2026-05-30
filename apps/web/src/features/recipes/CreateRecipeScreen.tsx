@@ -21,7 +21,7 @@ type StepDraft = { id: string; title: string; body: string; timers: TimerDraft[]
 
 const newIngredient = (): IngredientDraft => ({ id: crypto.randomUUID(), name: "", quantity: "" });
 const newStep = (): StepDraft => ({ id: crypto.randomUUID(), title: "", body: "", timers: [] });
-const newTimer = (): TimerDraft => ({ id: crypto.randomUUID(), minutes: "" });
+const newTimer = (): TimerDraft => ({ id: crypto.randomUUID(), minutes: "5" });
 
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value));
@@ -85,9 +85,7 @@ const Stepper = ({
             aria-label={label}
             value={draft}
             onChange={(e) => handleInput(e.currentTarget.value)}
-            onBlur={() => {
-              if (draft.length === 0) setDraft(String(value));
-            }}
+            onBlur={() => setDraft(String(value))}
             className="w-12 bg-transparent font-medium text-[15px] text-slate-900 tabular-nums outline-none"
           />
           {suffix !== undefined && <span className="text-[15px] text-slate-400">{suffix}</span>}

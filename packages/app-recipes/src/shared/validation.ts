@@ -26,9 +26,11 @@ export const QuantitySchema = v.pipe(v.string(), v.trim(), v.maxLength(40, "Quan
 export const MinutesSchema = v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(1440));
 export const ServesSchema = v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(50));
 
+export const MAX_IMAGE_DATA_URL_LENGTH = 600_000;
+
 export const ImageDataUrlSchema = v.pipe(
   v.string(),
-  v.maxLength(1_500_000, "Image is too large"),
+  v.maxLength(MAX_IMAGE_DATA_URL_LENGTH, "Image is too large"),
   v.regex(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/, "Unsupported image"),
 );
 

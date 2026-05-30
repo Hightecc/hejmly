@@ -1,5 +1,6 @@
 import { CameraIcon, SpinnerGapIcon, TrashIcon } from "@phosphor-icons/react";
 import { type ReactElement, useRef, useState } from "react";
+import { MAX_IMAGE_DATA_URL_LENGTH } from "../shared/index.ts";
 
 type PhotoInputProps = {
   value: string | null;
@@ -7,8 +8,17 @@ type PhotoInputProps = {
   onError?: (message: string) => void;
 };
 
-const MAX_DIM = 1280;
-const QUALITY = 0.82;
+const MAX_DIM = 1024;
+
+const encodeWithinCap = (canvas: HTMLCanvasElement): string => {
+  let quality = 0.8;
+  let dataUrl = canvas.toDataURL("image/jpeg", quality);
+  while (dataUrl.length > MAX_IMAGE_DATA_URL_LENGTH && quality > 0.4) {
+    quality -= 0.12;
+    dataUrl = canvas.toDataURL("image/jpeg", quality);
+  }
+  return dataUrl;
+};
 
 const resizeToDataUrl = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -29,7 +39,12 @@ const resizeToDataUrl = (file: File): Promise<string> =>
         return;
       }
       ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL("image/jpeg", QUALITY));
+      const dataUrl = encodeWithinCap(canvas);
+      if (dataUrl.length > MAX_IMAGE_DATA_URL_LENGTH) {
+        reject(new Error("This photo is too large — try a smaller one"));
+        return;
+      }
+      resolve(dataUrl);
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);

@@ -30,22 +30,26 @@ import {
   EyeIcon,
   FilePdfIcon,
   ForkKnifeIcon,
+  TrashIcon,
   WarningCircleIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { type ReactElement, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { match } from "ts-pattern";
 import * as v from "valibot";
 
 import { BottomNav } from "@/components/BottomNav";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
+import { cn } from "@/lib/cn";
 import { createItem } from "@/lib/grocery-api";
-import { fetchRecipe } from "@/lib/recipes-api";
+import { deleteRecipe, fetchRecipe } from "@/lib/recipes-api";
 
 const ACCENT = "#ff6b35";
 const GROCERY_QUERY_KEY = ["grocery", "items"] as const;
+const RECIPES_LIST_KEY = ["recipes", "list"] as const;
 
 type Screen = { kind: "read" } | { kind: "method" } | { kind: "cook"; stepIndex: number };
 
@@ -60,11 +64,11 @@ const Shell = ({ children }: { children: ReactElement | ReactElement[] }): React
   <main className="relative flex h-dvh flex-col overflow-hidden bg-slate-50">{children}</main>
 );
 
-const Hero = ({ recipe }: { recipe: Recipe }): ReactElement =>
+const Hero = ({ recipe, className }: { recipe: Recipe; className: string }): ReactElement =>
   recipe.image === null ? (
-    <PhotoPlaceholder className="h-44 w-full" />
+    <PhotoPlaceholder className={className} />
   ) : (
-    <img src={recipe.image} alt={recipe.title} className="h-44 w-full object-cover" />
+    <img src={recipe.image} alt={recipe.title} className={cn(className, "object-cover")} />
   );
 
 const NotFound = (): ReactElement => (
@@ -304,104 +308,119 @@ const CookView = ({
   );
 };
 
-const RecipeView = ({ recipe }: { recipe: Recipe }): ReactElement => {
-  const [screen, setScreen] = useState<Screen>({ kind: "read" });
+const MethodView = ({
+  recipe,
+  timers,
+  now,
+  start,
+  cancel,
+  onBack,
+  onCook,
+  onExport,
+}: {
+  recipe: Recipe;
+  timers: TimerMap;
+  now: number;
+  start: (id: string, label: string, minutes: number) => void;
+  cancel: (id: string) => void;
+  onBack: () => void;
+  onCook: () => void;
+  onExport: () => void;
+}): ReactElement => (
+  <Shell>
+    <div className="flex h-12 shrink-0 items-center justify-between border-slate-100 border-b bg-white px-3 pt-[env(safe-area-inset-top)]">
+      <button
+        type="button"
+        onClick={onBack}
+        aria-label="Back to recipe"
+        className="grid size-11 place-items-center rounded-full text-slate-600 transition active:bg-slate-100"
+      >
+        <ArrowLeftIcon size={18} weight="bold" />
+      </button>
+      <div className="truncate px-2 font-semibold text-[15px] text-slate-900">{recipe.title}</div>
+      <button
+        type="button"
+        onClick={onExport}
+        aria-label="Export as PDF"
+        className="grid size-11 place-items-center rounded-full text-slate-600 transition active:bg-slate-100"
+      >
+        <FilePdfIcon size={18} weight="bold" />
+      </button>
+    </div>
+    <div className="flex-1 overflow-y-auto bg-white px-5 pt-4 pb-4">
+      <h2 className="font-semibold text-[11px] text-slate-400 uppercase tracking-[0.12em]">
+        Instructions
+      </h2>
+      <div className="mt-1 divide-y divide-slate-100">
+        {recipe.steps.map((step, index) => (
+          <StepCard
+            key={`${index}-${step.title}`}
+            step={step}
+            index={index}
+            accent={ACCENT}
+            timers={timers}
+            now={now}
+            showIngredients
+            onStart={start}
+            onCancel={cancel}
+          />
+        ))}
+      </div>
+    </div>
+    <FloatingTimers
+      timers={timers}
+      now={now}
+      accent={ACCENT}
+      onCancel={cancel}
+      bottomClassName="bottom-[calc(env(safe-area-inset-bottom)+9.5rem)]"
+    />
+    <div className="shrink-0 border-slate-100 border-t bg-white px-5 pt-2.5 pb-3">
+      <button
+        type="button"
+        onClick={onCook}
+        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl font-semibold text-[15px] text-white transition active:scale-[0.99]"
+        style={{ background: ACCENT }}
+      >
+        <CookingPotIcon size={18} weight="fill" />
+        Cook mode
+      </button>
+    </div>
+    <BottomNav active="recipes" />
+  </Shell>
+);
+
+const ReadView = ({
+  recipe,
+  onStartCooking,
+  onExport,
+}: {
+  recipe: Recipe;
+  onStartCooking: () => void;
+  onExport: () => void;
+}): ReactElement => {
+  const qc = useQueryClient();
+  const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { timers, now, start, cancel } = useTimers();
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const onExport = (): void => exportRecipePdf(recipe, (m) => toast.error(m));
-
-  if (screen.kind === "cook") {
-    return (
-      <CookView
-        recipe={recipe}
-        stepIndex={screen.stepIndex}
-        timers={timers}
-        now={now}
-        start={start}
-        cancel={cancel}
-        onExit={() => setScreen({ kind: "read" })}
-        onStep={(index) => setScreen({ kind: "cook", stepIndex: index })}
-      />
-    );
-  }
-
-  if (screen.kind === "method") {
-    return (
-      <Shell>
-        <div className="flex h-12 shrink-0 items-center justify-between border-slate-100 border-b bg-white px-3 pt-[env(safe-area-inset-top)]">
-          <button
-            type="button"
-            onClick={() => setScreen({ kind: "read" })}
-            aria-label="Back to recipe"
-            className="grid size-11 place-items-center rounded-full text-slate-600 transition active:bg-slate-100"
-          >
-            <ArrowLeftIcon size={18} weight="bold" />
-          </button>
-          <div className="truncate px-2 font-semibold text-[15px] text-slate-900">
-            {recipe.title}
-          </div>
-          <button
-            type="button"
-            onClick={onExport}
-            aria-label="Export as PDF"
-            className="grid size-11 place-items-center rounded-full text-slate-600 transition active:bg-slate-100"
-          >
-            <FilePdfIcon size={18} weight="bold" />
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto bg-white px-5 pt-4 pb-4">
-          <h2 className="font-semibold text-[11px] text-slate-400 uppercase tracking-[0.12em]">
-            Instructions
-          </h2>
-          <div className="mt-1 divide-y divide-slate-100">
-            {recipe.steps.map((step, index) => (
-              <StepCard
-                key={`${index}-${step.title}`}
-                step={step}
-                index={index}
-                accent={ACCENT}
-                timers={timers}
-                now={now}
-                showIngredients
-                onStart={start}
-                onCancel={cancel}
-              />
-            ))}
-          </div>
-        </div>
-        <FloatingTimers
-          timers={timers}
-          now={now}
-          accent={ACCENT}
-          onCancel={cancel}
-          bottomClassName="bottom-[calc(env(safe-area-inset-bottom)+9.5rem)]"
-        />
-        <div className="shrink-0 border-slate-100 border-t bg-white px-5 pt-2.5 pb-3">
-          <button
-            type="button"
-            onClick={() => setScreen({ kind: "cook", stepIndex: 0 })}
-            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl font-semibold text-[15px] text-white transition active:scale-[0.99]"
-            style={{ background: ACCENT }}
-          >
-            <CookingPotIcon size={18} weight="fill" />
-            Cook mode
-          </button>
-        </div>
-        <BottomNav active="recipes" />
-      </Shell>
-    );
-  }
+  const remove = useMutation({
+    mutationFn: () => deleteRecipe(recipe.id),
+    onSuccess: () => {
+      toast.success("Recipe deleted");
+      void qc.invalidateQueries({ queryKey: RECIPES_LIST_KEY });
+      void navigate({ to: "/recipes" });
+    },
+    onError: () => toast.error("Couldn't delete recipe"),
+  });
 
   return (
     <Shell>
-      <div className="relative shrink-0">
-        <Hero recipe={recipe} />
-        <div className="absolute inset-x-0 top-0 flex h-12 items-center justify-between px-2 pt-[env(safe-area-inset-top)]">
+      <div className="shrink-0 bg-white">
+        <div className="flex h-12 items-center justify-between px-2 pt-[env(safe-area-inset-top)]">
           <Link
             to="/recipes"
             aria-label="Back to recipes"
-            className="grid size-11 place-items-center rounded-full bg-white/90 text-slate-800 shadow-sm backdrop-blur transition active:scale-95"
+            className="grid size-11 place-items-center rounded-full text-slate-600 transition active:bg-slate-100"
           >
             <ArrowLeftIcon size={18} weight="bold" />
           </Link>
@@ -409,15 +428,18 @@ const RecipeView = ({ recipe }: { recipe: Recipe }): ReactElement => {
             type="button"
             onClick={onExport}
             aria-label="Export as PDF"
-            className="grid size-11 place-items-center rounded-full bg-white/90 text-slate-800 shadow-sm backdrop-blur transition active:scale-95"
+            className="grid size-11 place-items-center rounded-full text-slate-600 transition active:bg-slate-100"
           >
             <FilePdfIcon size={18} weight="bold" />
           </button>
         </div>
+        <div className="px-5 pb-1">
+          <Hero recipe={recipe} className="h-40 w-full rounded-2xl" />
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto bg-white">
-        <div className="px-5 pt-4">
+        <div className="px-5 pt-3">
           <h1 className="font-semibold text-[22px] text-slate-900 leading-tight tracking-tight">
             {recipe.title}
           </h1>
@@ -436,7 +458,7 @@ const RecipeView = ({ recipe }: { recipe: Recipe }): ReactElement => {
           </div>
         </div>
 
-        <div className="px-5 pt-5 pb-4">
+        <div className="px-5 pt-5">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-[11px] text-slate-400 uppercase tracking-[0.12em]">
               Ingredients · {recipe.ingredients.length}
@@ -460,12 +482,23 @@ const RecipeView = ({ recipe }: { recipe: Recipe }): ReactElement => {
             ))}
           </div>
         </div>
+
+        <div className="px-5 pt-4 pb-6">
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl font-medium text-[14px] text-rose-600 transition active:bg-rose-50"
+          >
+            <TrashIcon size={16} weight="bold" />
+            Delete recipe
+          </button>
+        </div>
       </div>
 
       <div className="shrink-0 border-slate-100 border-t bg-white px-5 pt-2.5 pb-3">
         <button
           type="button"
-          onClick={() => setScreen({ kind: "method" })}
+          onClick={onStartCooking}
           className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl font-semibold text-[15px] text-white transition active:scale-[0.99]"
           style={{ background: ACCENT }}
         >
@@ -476,8 +509,86 @@ const RecipeView = ({ recipe }: { recipe: Recipe }): ReactElement => {
 
       <BottomNav active="recipes" />
       <AddToGroceryDrawer recipe={recipe} open={drawerOpen} onOpenChange={setDrawerOpen} />
+
+      <Drawer
+        open={confirmDelete}
+        onOpenChange={(open) => {
+          if (!open && remove.isPending) return;
+          setConfirmDelete(open);
+        }}
+      >
+        <DrawerContent
+          className="rounded-t-3xl bg-white"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+          <DrawerTitle className="px-5 pt-2 font-semibold text-lg text-slate-900">
+            Delete {recipe.title}?
+          </DrawerTitle>
+          <DrawerDescription className="px-5 pt-1 text-slate-600 text-sm">
+            This can't be undone — the recipe will be gone for everyone in the household.
+          </DrawerDescription>
+          <div className="flex flex-col gap-2.5 px-5 pt-5 pb-[max(env(safe-area-inset-bottom),1rem)]">
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(false)}
+              className="flex min-h-12 w-full items-center justify-center rounded-2xl bg-slate-100 font-medium text-base text-slate-900 transition active:scale-[0.98]"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={remove.isPending}
+              onClick={() => remove.mutate()}
+              className="flex min-h-12 w-full items-center justify-center rounded-2xl bg-rose-600 font-medium text-base text-white transition active:scale-[0.98] disabled:opacity-60"
+            >
+              {remove.isPending ? "Deleting…" : "Delete"}
+            </button>
+          </div>
+        </DrawerContent>
+      </Drawer>
     </Shell>
   );
+};
+
+const RecipeView = ({ recipe }: { recipe: Recipe }): ReactElement => {
+  const [screen, setScreen] = useState<Screen>({ kind: "read" });
+  const { timers, now, start, cancel } = useTimers();
+
+  const onExport = (): void => exportRecipePdf(recipe, (m) => toast.error(m));
+
+  return match(screen)
+    .with({ kind: "cook" }, (s) => (
+      <CookView
+        recipe={recipe}
+        stepIndex={s.stepIndex}
+        timers={timers}
+        now={now}
+        start={start}
+        cancel={cancel}
+        onExit={() => setScreen({ kind: "read" })}
+        onStep={(index) => setScreen({ kind: "cook", stepIndex: index })}
+      />
+    ))
+    .with({ kind: "method" }, () => (
+      <MethodView
+        recipe={recipe}
+        timers={timers}
+        now={now}
+        start={start}
+        cancel={cancel}
+        onBack={() => setScreen({ kind: "read" })}
+        onCook={() => setScreen({ kind: "cook", stepIndex: 0 })}
+        onExport={onExport}
+      />
+    ))
+    .with({ kind: "read" }, () => (
+      <ReadView
+        recipe={recipe}
+        onStartCooking={() => setScreen({ kind: "method" })}
+        onExport={onExport}
+      />
+    ))
+    .exhaustive();
 };
 
 export const RecipeDetailScreen = ({ recipeId }: { recipeId: string }): ReactElement => {
@@ -496,7 +607,9 @@ export const RecipeDetailScreen = ({ recipeId }: { recipeId: string }): ReactEle
   if (recipe.isPending) {
     return (
       <Shell>
-        <div className="h-44 w-full shrink-0 animate-pulse bg-slate-100" />
+        <div className="shrink-0 bg-white px-5 pt-[calc(env(safe-area-inset-top)+3rem)]">
+          <div className="h-40 w-full animate-pulse rounded-2xl bg-slate-100" />
+        </div>
         <div className="flex-1 space-y-3 bg-white px-5 pt-5">
           <div className="h-6 w-2/3 animate-pulse rounded bg-slate-100" />
           <div className="h-4 w-full animate-pulse rounded bg-slate-100" />

@@ -63,3 +63,14 @@ export const createRecipe = async (input: CreateRecipeInput): Promise<Recipe> =>
   const body = await parseJson(res, RecipeEnvelopeSchema);
   return body.recipe;
 };
+
+export const deleteRecipe = async (id: RecipeId): Promise<void> => {
+  const res = await fetch(`/api/recipes/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const message = await res.text();
+    throw new Error(message || `HTTP ${res.status}`);
+  }
+};
