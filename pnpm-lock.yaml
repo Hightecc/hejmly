@@ -41,6 +41,9 @@ importers:
       '@onehouse/app-grocery':
         specifier: workspace:*
         version: link:../../packages/app-grocery
+      '@onehouse/app-recipes':
+        specifier: workspace:*
+        version: link:../../packages/app-recipes
       '@onehouse/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -56,6 +59,9 @@ importers:
       '@onehouse/app-grocery':
         specifier: workspace:*
         version: link:../../packages/app-grocery
+      '@onehouse/app-recipes':
+        specifier: workspace:*
+        version: link:../../packages/app-recipes
       '@onehouse/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -141,6 +147,46 @@ importers:
       bunqueue:
         specifier: 2.7.14
         version: 2.7.14
+      clsx:
+        specifier: 2.1.1
+        version: 2.1.1
+      hono:
+        specifier: 4.12.21
+        version: 4.12.21
+      tailwind-merge:
+        specifier: 2.5.5
+        version: 2.5.5
+      ts-pattern:
+        specifier: 5.9.0
+        version: 5.9.0
+      ulid:
+        specifier: 3.0.2
+        version: 3.0.2
+      valibot:
+        specifier: 1.4.0
+        version: 1.4.0(typescript@5.7.2)
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@phosphor-icons/react':
+        specifier: 2.1.10
+        version: 2.1.10(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@types/react':
+        specifier: 19.2.15
+        version: 19.2.15
+      react:
+        specifier: 19.2.0
+        version: 19.2.0
+
+  packages/app-recipes:
+    dependencies:
+      '@modelcontextprotocol/sdk':
+        specifier: 1.29.0
+        version: 1.29.0(zod@4.4.3)
+      '@onehouse/core':
+        specifier: workspace:*
+        version: link:../core
       clsx:
         specifier: 2.1.1
         version: 2.1.1

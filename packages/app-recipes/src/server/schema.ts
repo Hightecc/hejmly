@@ -1,0 +1,30 @@
+import { index, integer, sqliteTable, text } from "@onehouse/core/server/drizzle";
+import { users } from "@onehouse/core/server/schema";
+
+export const recipes = sqliteTable(
+  "recipes",
+  {
+    id: text("id").primaryKey(),
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    category: text("category").notNull(),
+    minutes: integer("minutes").notNull(),
+    serves: integer("serves").notNull(),
+    ingredientsJson: text("ingredients_json").notNull(),
+    stepsJson: text("steps_json").notNull(),
+    createdByUserId: text("created_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (t) => ({
+    createdAtIdx: index("recipes_created_at_idx").on(t.createdAt),
+    categoryIdx: index("recipes_category_idx").on(t.category),
+  }),
+);
+
+export type RecipeRow = typeof recipes.$inferSelect;
+export type RecipeInsert = typeof recipes.$inferInsert;

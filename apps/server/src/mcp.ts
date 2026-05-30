@@ -1,5 +1,7 @@
 import type { CleanupScheduler, GroceryService } from "@onehouse/app-grocery/server";
 import { registerGroceryTools } from "@onehouse/app-grocery/tools";
+import type { RecipeService } from "@onehouse/app-recipes/server";
+import { registerRecipeTools } from "@onehouse/app-recipes/tools";
 import type { AuditRecorder } from "@onehouse/core/server";
 import {
   createAuthServerMetadataHandler,
@@ -16,7 +18,8 @@ export type McpDeps = {
   baseURL: string;
   jwksOrigin: string;
   allowedHosts: readonly string[];
-  service: GroceryService;
+  grocery: GroceryService;
+  recipes: RecipeService;
   audit: AuditRecorder;
   cleanup: CleanupScheduler;
 };
@@ -25,16 +28,17 @@ export const mountMcp = ({
   baseURL,
   jwksOrigin,
   allowedHosts,
-  service,
+  grocery,
+  recipes,
   audit,
   cleanup,
 }: McpDeps) => {
   const config = deriveMcpAuthConfig(baseURL, jwksOrigin);
   const handle = createMcpAuthGuard(config)((req, actor) =>
-    runMcpRequest(
-      (server) => registerGroceryTools(server, { service, actor, audit, cleanup }),
-      req,
-    ),
+    runMcpRequest((server) => {
+      registerGroceryTools(server, { service: grocery, actor, audit, cleanup });
+      registerRecipeTools(server, { service: recipes, actor, audit });
+    }, req),
   );
 
   const authServerMetadata = createAuthServerMetadataHandler(baseURL);

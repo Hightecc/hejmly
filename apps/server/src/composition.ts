@@ -1,5 +1,7 @@
 import type { CleanupScheduler, GroceryService } from "@onehouse/app-grocery/server";
 import { createGroceryRoutes } from "@onehouse/app-grocery/server";
+import type { RecipeService } from "@onehouse/app-recipes/server";
+import { createRecipeRoutes } from "@onehouse/app-recipes/server";
 import {
   type AssistantsService,
   type AuditRecorder,
@@ -29,6 +31,9 @@ export type ComposeOptions = {
     service: GroceryService;
     cleanup: CleanupScheduler;
   };
+  recipes: {
+    service: RecipeService;
+  };
 };
 
 export const createApp = ({
@@ -39,6 +44,7 @@ export const createApp = ({
   audit,
   assistants,
   grocery,
+  recipes,
 }: ComposeOptions) =>
   new Hono()
     .use("*", logger())
@@ -52,7 +58,8 @@ export const createApp = ({
         baseURL,
         jwksOrigin,
         allowedHosts,
-        service: grocery.service,
+        grocery: grocery.service,
+        recipes: recipes.service,
         audit,
         cleanup: grocery.cleanup,
       }),
@@ -61,6 +68,7 @@ export const createApp = ({
     .get("/api/me", (c) => c.json({ user: c.get("user") }))
     .route("/api/me/assistants", createAssistantsRoutes({ service: assistants.service, audit }))
     .route("/api/grocery", createGroceryRoutes(grocery))
+    .route("/api/recipes", createRecipeRoutes(recipes))
     .onError((err, c) => {
       if (isValidationError(err)) {
         return c.json({ kind: "invalid_input", message: "Invalid input" }, 400);
