@@ -6,7 +6,9 @@ import type { Auth, Db } from "@onehouse/core/server";
 import { createAuditRecorder } from "@onehouse/core/server";
 import { withTestAuth } from "@onehouse/core/server/test";
 import { type UserId, parseUserId } from "@onehouse/core/shared";
+import * as v from "valibot";
 import { createRecipeService } from "../server/index.ts";
+import { CreateRecipeInputSchema } from "../shared/index.ts";
 import { registerRecipeTools } from "./index.ts";
 
 const TEST_EMAIL = "basile@example.com";
@@ -122,6 +124,30 @@ describe("recipe MCP tools", () => {
       expect(updated.isError).toBeFalsy();
       expect(updated.structuredContent).toMatchObject({
         recipe: { id: recipeId, title: "Rigatoni v2", serves: 6 },
+      });
+    });
+  });
+
+  test("update preserves the existing photo when the caller omits it", async () => {
+    await withTestAuth({ allowedEmails: TEST_EMAIL }, async ({ auth, db }) => {
+      const actor = await seedUser(auth);
+      const service = createRecipeService(db);
+      const image = "data:image/png;base64,iVBORw0KGgo=";
+      const seeded = await service.create(
+        v.parse(CreateRecipeInputSchema, { ...ADD_ARGS, image }),
+        actor,
+      );
+      if (seeded.kind === "err") throw new Error("failed to seed recipe with image");
+      const recipeId = seeded.value.id;
+
+      const client = await connect(db, actor);
+      const updated = await client.callTool({
+        name: "recipes.update",
+        arguments: { ...ADD_ARGS, recipeId, title: "Rigatoni with a photo" },
+      });
+      expect(updated.isError).toBeFalsy();
+      expect(updated.structuredContent).toMatchObject({
+        recipe: { id: recipeId, title: "Rigatoni with a photo", image },
       });
     });
   });

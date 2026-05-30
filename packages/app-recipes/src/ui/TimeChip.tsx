@@ -29,48 +29,54 @@ export const TimeChip = ({
       <button
         type="button"
         onClick={() => onStart(id, label, minutes)}
-        className="group inline-flex h-8 items-center gap-1.5 rounded-full bg-slate-100 pr-3 pl-2.5 font-semibold text-[13px] text-slate-700 transition active:scale-95"
+        className="-my-1.5 flex min-h-11 items-center transition active:scale-95"
       >
-        <TimerIcon size={16} className="text-slate-500" />
-        <span className="tabular-nums">{minutes} min</span>
+        <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-slate-100 pr-3 pl-2.5 font-semibold text-[13px] text-slate-700">
+          <TimerIcon size={16} className="text-slate-500" />
+          <span className="tabular-nums">{minutes} min</span>
+        </span>
       </button>
     ))
     .with({ kind: "running" }, ({ remainingMs, fraction }) => (
-      <span
-        className="relative inline-flex h-8 select-none items-center gap-1.5 overflow-hidden rounded-full pr-1.5 pl-2.5 font-semibold text-[13px] text-white"
-        style={{ background: accent }}
+      <button
+        type="button"
+        onClick={() => onCancel(id)}
+        aria-label={`Cancel ${label} timer`}
+        className="-my-1.5 flex min-h-11 items-center transition active:scale-95"
       >
         <span
-          className="absolute inset-y-0 left-0 bg-black/10"
-          style={{ width: `${fraction * 100}%` }}
-        />
-        <TimerIcon size={15} weight="fill" className="relative animate-pulse" />
-        <span className="relative tabular-nums">{formatClock(remainingMs)}</span>
-        <button
-          type="button"
-          onClick={() => onCancel(id)}
-          aria-label={`Cancel ${label} timer`}
-          className="relative grid size-5 place-items-center rounded-full bg-white/25 transition active:bg-white/40"
+          className="relative inline-flex h-8 select-none items-center gap-1.5 overflow-hidden rounded-full pr-1.5 pl-2.5 font-semibold text-[13px] text-white"
+          style={{ background: accent }}
         >
-          <XIcon size={10} weight="bold" />
-        </button>
-      </span>
+          <span
+            className="absolute inset-y-0 left-0 bg-black/10"
+            style={{ width: `${fraction * 100}%` }}
+          />
+          <TimerIcon size={15} weight="fill" className="relative animate-pulse" />
+          <span className="relative tabular-nums">{formatClock(remainingMs)}</span>
+          <span className="relative grid size-5 place-items-center rounded-full bg-white/25">
+            <XIcon size={10} weight="bold" />
+          </span>
+        </span>
+      </button>
     ))
     .with({ kind: "done" }, () => (
-      <span
-        className="inline-flex h-8 animate-oh-ring select-none items-center gap-1.5 rounded-full px-3 font-semibold text-[13px] text-white shadow-sm"
-        style={{ background: accent }}
+      <button
+        type="button"
+        onClick={() => onCancel(id)}
+        aria-label={`Dismiss ${label} timer`}
+        className="-my-1.5 flex min-h-11 items-center transition active:scale-95"
       >
-        <BellRingingIcon size={15} weight="fill" />
-        Done
-        <button
-          type="button"
-          onClick={() => onCancel(id)}
-          aria-label={`Dismiss ${label} timer`}
-          className="-mr-1 grid size-5 place-items-center rounded-full bg-white/25 transition active:bg-white/40"
+        <span
+          className="inline-flex h-8 animate-oh-ring select-none items-center gap-1.5 rounded-full px-3 font-semibold text-[13px] text-white shadow-sm"
+          style={{ background: accent }}
         >
-          <CheckIcon size={10} weight="bold" />
-        </button>
-      </span>
+          <BellRingingIcon size={15} weight="fill" />
+          Done
+          <span className="-mr-1 grid size-5 place-items-center rounded-full bg-white/25">
+            <CheckIcon size={10} weight="bold" />
+          </span>
+        </span>
+      </button>
     ))
     .exhaustive();

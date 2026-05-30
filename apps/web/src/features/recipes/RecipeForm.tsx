@@ -122,7 +122,8 @@ const Stepper = ({
             value={draft}
             onChange={(e) => handleInput(e.currentTarget.value)}
             onBlur={() => setDraft(String(value))}
-            className="w-12 bg-transparent font-medium text-[15px] text-slate-900 tabular-nums outline-none"
+            style={{ width: `${Math.max(draft.length, 1)}ch` }}
+            className="bg-transparent font-medium text-base text-slate-900 tabular-nums outline-none"
           />
           {suffix !== undefined && <span className="text-[15px] text-slate-400">{suffix}</span>}
         </div>
@@ -131,17 +132,21 @@ const Stepper = ({
             type="button"
             aria-label={`Decrease ${label}`}
             onClick={() => onChange(value - 1)}
-            className="grid size-8 place-items-center rounded-lg border border-slate-200 text-slate-600 transition active:bg-slate-50"
+            className="group/dec -m-1.5 grid size-11 place-items-center"
           >
-            <MinusIcon size={13} weight="bold" />
+            <span className="grid size-8 place-items-center rounded-lg border border-slate-200 text-slate-600 transition group-active/dec:bg-slate-50">
+              <MinusIcon size={14} weight="bold" />
+            </span>
           </button>
           <button
             type="button"
             aria-label={`Increase ${label}`}
             onClick={() => onChange(value + 1)}
-            className="grid size-8 place-items-center rounded-lg border border-slate-200 text-slate-600 transition active:bg-slate-50"
+            className="group/inc -m-1.5 grid size-11 place-items-center"
           >
-            <PlusIcon size={13} weight="bold" />
+            <span className="grid size-8 place-items-center rounded-lg border border-slate-200 text-slate-600 transition group-active/inc:bg-slate-50">
+              <PlusIcon size={14} weight="bold" />
+            </span>
           </button>
         </div>
       </div>
@@ -440,10 +445,10 @@ export const RecipeForm = ({
                     {row.timers.map((timer, timerIndex) => (
                       <span
                         key={timer.id}
-                        className="inline-flex h-8 items-center gap-1 rounded-full pr-1.5 pl-2.5 font-semibold text-[13px] text-white"
+                        className="inline-flex h-11 items-center gap-1 rounded-full pr-1 pl-3 font-semibold text-[13px] text-white"
                         style={{ background: ACCENT }}
                       >
-                        <TimerIcon size={14} weight="fill" />
+                        <TimerIcon size={15} weight="fill" />
                         <input
                           inputMode="numeric"
                           autoComplete="off"
@@ -453,23 +458,26 @@ export const RecipeForm = ({
                             setTimer(index, timer.id, onlyDigits(e.currentTarget.value))
                           }
                           placeholder="5"
-                          className="w-7 bg-transparent text-center text-white tabular-nums outline-none placeholder:text-white/60"
+                          style={{ width: `${Math.max(timer.minutes.length, 1)}ch` }}
+                          className="bg-transparent text-center text-base text-white tabular-nums outline-none placeholder:text-white/60"
                         />
                         min
                         <button
                           type="button"
                           aria-label={`Remove timer ${timerIndex + 1}`}
                           onClick={() => removeTimer(index, timer.id)}
-                          className="ml-0.5 grid size-5 place-items-center rounded-full bg-white/25 transition active:bg-white/40"
+                          className="group/rmt -mr-1 grid size-11 place-items-center"
                         >
-                          <XIcon size={10} weight="bold" />
+                          <span className="grid size-6 place-items-center rounded-full bg-white/25 transition group-active/rmt:bg-white/40">
+                            <XIcon size={11} weight="bold" />
+                          </span>
                         </button>
                       </span>
                     ))}
                     <button
                       type="button"
                       onClick={() => addTimer(index)}
-                      className="inline-flex h-8 items-center gap-1.5 rounded-full border border-slate-300 border-dashed px-3 font-medium text-[13px] text-slate-500 transition active:bg-slate-50"
+                      className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-slate-300 border-dashed px-4 font-medium text-[13px] text-slate-500 transition active:bg-slate-50"
                     >
                       <PlusIcon size={13} weight="bold" />
                       Add a time

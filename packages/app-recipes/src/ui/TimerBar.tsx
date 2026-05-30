@@ -63,7 +63,7 @@ export const TimerBar = (): ReactElement | null => {
               type="button"
               onClick={() => cancel(id)}
               aria-label={`Stop ${timer.label} timer`}
-              className="relative grid size-9 place-items-center rounded-full bg-white/10 transition active:bg-white/20"
+              className="relative grid size-11 place-items-center rounded-full bg-white/10 transition active:bg-white/20"
             >
               {display.done ? (
                 <CheckIcon size={14} weight="bold" />

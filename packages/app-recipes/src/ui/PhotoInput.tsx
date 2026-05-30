@@ -106,18 +106,18 @@ export const PhotoInput = ({ value, onChange, onError }: PhotoInputProps): React
               type="button"
               onClick={pick}
               disabled={busy}
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-white/90 px-3 font-medium text-[13px] text-slate-800 backdrop-blur transition active:scale-95"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-white/90 px-4 font-medium text-[13px] text-slate-800 backdrop-blur transition active:scale-95"
             >
-              <CameraIcon size={15} weight="bold" />
+              <CameraIcon size={16} weight="bold" />
               Change
             </button>
             <button
               type="button"
               onClick={() => onChange(null)}
               aria-label="Remove photo"
-              className="grid size-9 place-items-center rounded-full bg-white/90 text-slate-700 backdrop-blur transition active:scale-95"
+              className="grid size-11 place-items-center rounded-full bg-white/90 text-slate-700 backdrop-blur transition active:scale-95"
             >
-              <TrashIcon size={16} weight="bold" />
+              <TrashIcon size={18} weight="bold" />
             </button>
           </div>
         </div>
