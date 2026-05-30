@@ -1,7 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { parseOAuthConsentId, parseUserId } from "../../shared/index.ts";
 import type { Auth } from "../auth/index.ts";
-import { oauthAccessTokens, oauthClients, oauthConsents } from "../auth/schema.ts";
+import {
+  oauthAccessTokens,
+  oauthClients,
+  oauthConsents,
+  oauthRefreshTokens,
+} from "../auth/schema.ts";
 import type { Db } from "../db/index.ts";
 import { withTestAuth } from "../test/index.ts";
 import { createAssistantsService } from "./service.ts";
@@ -42,6 +47,20 @@ const insertAccessToken = async (
   await db.insert(oauthAccessTokens).values({
     id: opts.id,
     token: `access-${opts.id}`,
+    clientId: opts.clientId,
+    userId: opts.userId,
+    scopes: ["openid", "mcp"],
+    createdAt: new Date("2026-05-28T08:30:00.000Z"),
+  });
+};
+
+const insertRefreshToken = async (
+  db: Db,
+  opts: { id: string; clientId: string; userId: string },
+): Promise<void> => {
+  await db.insert(oauthRefreshTokens).values({
+    id: opts.id,
+    token: `refresh-${opts.id}`,
     clientId: opts.clientId,
     userId: opts.userId,
     scopes: ["openid", "mcp"],
@@ -172,6 +191,7 @@ describe("AssistantsService", () => {
         connectedAt: new Date("2026-05-12T10:00:00.000Z"),
       });
       await insertAccessToken(db, { id: "at-1", clientId: "claude-client", userId });
+      await insertRefreshToken(db, { id: "rt-1", clientId: "claude-client", userId });
 
       const service = createAssistantsService(db);
       const revoked = await service.revoke(parseUserId(userId), parseOAuthConsentId("consent-1"));
@@ -185,8 +205,10 @@ describe("AssistantsService", () => {
       if (after.kind !== "ok") throw new Error("expected ok");
       expect(after.value).toEqual([]);
 
-      const tokens = await db.select().from(oauthAccessTokens);
-      expect(tokens).toHaveLength(0);
+      const accessTokens = await db.select().from(oauthAccessTokens);
+      expect(accessTokens).toHaveLength(0);
+      const refreshTokens = await db.select().from(oauthRefreshTokens);
+      expect(refreshTokens).toHaveLength(0);
     });
   });
 

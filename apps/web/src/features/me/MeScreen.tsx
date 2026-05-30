@@ -16,17 +16,17 @@ import { SignOutButton } from "./atoms/SignOutButton";
 const ASSISTANTS_QUERY_KEY = ["me", "assistants"] as const;
 const UNDO_WINDOW_MS = 5000;
 
-type Identity = { userId: string; name: string; email: string; initial: string };
+type Identity = { userKey: string; name: string; email: string; initial: string };
 
 const deriveIdentity = (
   user: { id: string; name?: string | null; email?: string | null } | undefined,
 ): Identity => {
-  if (user === undefined) return { userId: "", name: "You", email: "", initial: "·" };
+  if (user === undefined) return { userKey: "", name: "You", email: "", initial: "·" };
   const trimmedName = user.name?.trim();
   const name =
     trimmedName !== undefined && trimmedName.length > 0 ? trimmedName : (user.email ?? "You");
   const initial = name.charAt(0).toUpperCase() || "·";
-  return { userId: user.id, name, email: user.email ?? "", initial };
+  return { userKey: user.id, name, email: user.email ?? "", initial };
 };
 
 export const MeScreen = (): ReactElement => {
@@ -56,7 +56,11 @@ export const MeScreen = (): ReactElement => {
 
   const revoke = useMutation({
     mutationFn: (id: OAuthConsentId) => revokeAssistant(id),
-    onSuccess: () => {
+    onSuccess: (_result, id) => {
+      qc.setQueryData(ASSISTANTS_QUERY_KEY, (prev: ConnectedAssistant[] | undefined) =>
+        (prev ?? []).filter((assistant) => assistant.id !== id),
+      );
+      setHiddenFlag(id, false);
       void qc.invalidateQueries({ queryKey: ASSISTANTS_QUERY_KEY });
     },
     onError: (_error, id) => {
@@ -68,7 +72,10 @@ export const MeScreen = (): ReactElement => {
   useEffect(() => {
     const pending = timers.current;
     return () => {
-      for (const timer of pending.values()) clearTimeout(timer);
+      for (const [id, timer] of pending) {
+        clearTimeout(timer);
+        void revokeAssistant(id);
+      }
       pending.clear();
     };
   }, []);
@@ -118,7 +125,7 @@ export const MeScreen = (): ReactElement => {
       <MeTopBar />
       <div className="flex-1 overflow-y-auto">
         <IdentityRow
-          userId={identity.userId}
+          userKey={identity.userKey}
           name={identity.name}
           email={identity.email}
           initial={identity.initial}

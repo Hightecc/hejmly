@@ -78,6 +78,11 @@ export const createAssistantsService = (db: Db): AssistantsService => ({
       }
 
       const { clientId } = consent;
+      // Deleting the consent + refresh token is what durably revokes: the client
+      // can no longer mint a new token. The live access token is a stateless JWT
+      // (verified against JWKS, never read from here), so it survives until it
+      // expires — bounded by oauthProvider.accessTokenExpiresIn. Better Auth has
+      // no server-side JWT revocation by design.
       await db
         .delete(oauthAccessTokens)
         .where(and(eq(oauthAccessTokens.userId, userId), eq(oauthAccessTokens.clientId, clientId)));
