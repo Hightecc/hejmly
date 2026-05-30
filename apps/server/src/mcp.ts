@@ -14,13 +14,14 @@ import { cors } from "hono/cors";
 
 export type McpDeps = {
   baseURL: string;
+  jwksOrigin: string;
   allowedHosts: readonly string[];
   service: GroceryService;
   audit: AuditRecorder;
 };
 
-export const mountMcp = ({ baseURL, allowedHosts, service, audit }: McpDeps) => {
-  const config = deriveMcpAuthConfig(baseURL);
+export const mountMcp = ({ baseURL, jwksOrigin, allowedHosts, service, audit }: McpDeps) => {
+  const config = deriveMcpAuthConfig(baseURL, jwksOrigin);
   const handle = createMcpAuthGuard(config)((req, actor) =>
     runMcpRequest((server) => registerGroceryTools(server, { service, actor, audit }), req),
   );

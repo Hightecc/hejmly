@@ -7,10 +7,19 @@ export type McpAuthConfig = {
   jwksUrl: string;
 };
 
-export const deriveMcpAuthConfig = (baseURL: string): McpAuthConfig => ({
+// `jwksOrigin` is where the server itself reaches its JWKS to verify tokens. It
+// defaults to the public `baseURL` but should be the server's own loopback
+// (e.g. http://localhost:3000) in deployments where `baseURL` is fronted by a
+// dev proxy (Vite) or reverse proxy (Caddy) — verifying a token must not depend
+// on a round-trip back through that proxy. issuer/audience stay public to match
+// the JWT's claims.
+export const deriveMcpAuthConfig = (
+  baseURL: string,
+  jwksOrigin: string = baseURL,
+): McpAuthConfig => ({
   issuer: `${baseURL}/api/auth`,
   audience: `${baseURL}/mcp`,
-  jwksUrl: `${baseURL}/api/auth/jwks`,
+  jwksUrl: `${jwksOrigin}/api/auth/jwks`,
 });
 
 export type AuthedMcpHandler = (req: Request, actor: UserId) => Promise<Response>;

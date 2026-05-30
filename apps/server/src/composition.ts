@@ -13,6 +13,7 @@ const isValidationError = (err: unknown): boolean =>
 export type ComposeOptions = {
   auth: Auth;
   baseURL: string;
+  jwksOrigin?: string;
   allowedHosts: readonly string[];
   audit: AuditRecorder;
   grocery: {
@@ -21,14 +22,30 @@ export type ComposeOptions = {
   };
 };
 
-export const createApp = ({ auth, baseURL, allowedHosts, audit, grocery }: ComposeOptions) =>
+export const createApp = ({
+  auth,
+  baseURL,
+  jwksOrigin,
+  allowedHosts,
+  audit,
+  grocery,
+}: ComposeOptions) =>
   new Hono()
     .use("*", logger())
     .use("*", secureHeaders())
     .use("/api/*", cors({ origin: baseURL, credentials: true }))
     .get("/healthz", (c) => c.json({ ok: true }))
     .on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw))
-    .route("/", mountMcp({ baseURL, allowedHosts, service: grocery.service, audit }))
+    .route(
+      "/",
+      mountMcp({
+        baseURL,
+        jwksOrigin: jwksOrigin ?? baseURL,
+        allowedHosts,
+        service: grocery.service,
+        audit,
+      }),
+    )
     .use("/api/*", createRequireSession(auth))
     .get("/api/me", (c) => c.json({ user: c.get("user") }))
     .route("/api/grocery", createGroceryRoutes(grocery))
