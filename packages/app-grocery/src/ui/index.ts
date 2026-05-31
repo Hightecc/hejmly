@@ -7,6 +7,5 @@ export { Fab } from "./Fab.tsx";
 export { ItemRow, type ItemSyncState } from "./ItemRow.tsx";
 export { ListBody } from "./ListBody.tsx";
 export { ListSkeleton } from "./ListSkeleton.tsx";
-export { OfflineBanner } from "./OfflineBanner.tsx";
 export { RowActionsMenu } from "./RowActionsMenu.tsx";
 export { TopBar } from "./TopBar.tsx";

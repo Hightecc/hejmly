@@ -58,11 +58,14 @@ export const fetchRecipe = async (id: RecipeId): Promise<Recipe> => {
   return body.recipe;
 };
 
-export const createRecipe = async (input: CreateRecipeInput): Promise<Recipe> => {
+export const createRecipe = async (
+  input: CreateRecipeInput,
+  idempotencyKey: string = crypto.randomUUID(),
+): Promise<Recipe> => {
   const res = await fetch("/api/recipes", {
     method: "POST",
     credentials: "include",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", "idempotency-key": idempotencyKey },
     body: JSON.stringify(input),
   });
   const body = await parseJson(res, RecipeEnvelopeSchema);

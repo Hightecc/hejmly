@@ -85,6 +85,7 @@ const withMcpServer = async (run: (h: McpHarness) => Promise<void>): Promise<voi
 
         app = createApp({
           auth,
+          db,
           baseURL,
           jwksOrigin: baseURL,
           allowedHosts: [`localhost:${server.port}`],

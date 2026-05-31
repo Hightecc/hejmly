@@ -46,6 +46,7 @@ const cleanup = createCleanupScheduler({
 
 const app = createApp({
   auth,
+  db,
   baseURL: env.BETTER_AUTH_URL,
   jwksOrigin: `http://localhost:${env.PORT}`,
   allowedHosts,

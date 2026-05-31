@@ -36,6 +36,7 @@ const groceryFor = (db: Db) => ({
 const appFor = (auth: Auth, db: Db, baseURL = "http://localhost:5173") =>
   createApp({
     auth,
+    db,
     baseURL,
     jwksOrigin: baseURL,
     allowedHosts: ["localhost", "localhost:5173"],

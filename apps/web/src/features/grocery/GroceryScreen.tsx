@@ -15,7 +15,6 @@ import {
   type ItemSyncState,
   ListBody,
   ListSkeleton,
-  OfflineBanner,
   TopBar,
 } from "@onehouse/app-grocery/ui";
 import { parseUserId } from "@onehouse/core/shared";
@@ -89,11 +88,12 @@ export const GroceryScreen = (): ReactElement => {
 
   useEffect(() => {
     if (items.data === undefined) return;
+    const present = new Set(items.data.map((i) => i.id));
     setPending((prev) => {
       let changed = false;
       const next = new Map(prev);
       for (const [id, state] of prev) {
-        if (state === "error") {
+        if (state === "error" || !present.has(id)) {
           next.delete(id);
           changed = true;
         }
@@ -103,7 +103,8 @@ export const GroceryScreen = (): ReactElement => {
   }, [items.data]);
 
   const create = useMutation({
-    mutationFn: ({ input }: { input: CreateItemInput; tempId: GroceryItemId }) => createItem(input),
+    mutationFn: ({ input, tempId }: { input: CreateItemInput; tempId: GroceryItemId }) =>
+      createItem(input, tempId),
     onMutate: async ({ input, tempId }) => {
       await qc.cancelQueries({ queryKey: ITEMS_QUERY_KEY });
       const optimistic: GroceryItem = {
@@ -125,6 +126,7 @@ export const GroceryScreen = (): ReactElement => {
       return { tempId };
     },
     onError: (_e, _vars, ctx) => {
+      if (!navigator.onLine) return;
       if (ctx) setSync(ctx.tempId, "error");
       toast.error("Could not add item — tap retry");
     },
@@ -161,6 +163,7 @@ export const GroceryScreen = (): ReactElement => {
       return { prevItem, id };
     },
     onError: (_e, _vars, ctx) => {
+      if (!navigator.onLine) return;
       if (ctx?.prevItem !== undefined) {
         const restore = ctx.prevItem;
         qc.setQueryData<GroceryItem[]>(ITEMS_QUERY_KEY, (current) =>
@@ -203,6 +206,7 @@ export const GroceryScreen = (): ReactElement => {
       return { prevItem, id };
     },
     onError: (_e, _vars, ctx) => {
+      if (!navigator.onLine) return;
       if (ctx?.prevItem !== undefined) {
         const restore = ctx.prevItem;
         qc.setQueryData<GroceryItem[]>(ITEMS_QUERY_KEY, (current) =>
@@ -236,6 +240,7 @@ export const GroceryScreen = (): ReactElement => {
       return { index, prevItem };
     },
     onError: (_e, _vars, ctx) => {
+      if (!navigator.onLine) return;
       if (ctx?.prevItem !== undefined) {
         const restore = ctx.prevItem;
         const at = ctx.index;
@@ -361,7 +366,6 @@ export const GroceryScreen = (): ReactElement => {
   return (
     <main className="flex min-h-dvh flex-col bg-slate-50">
       <TopBar count={counts.total} doneCount={counts.done} queuedCount={counts.queued} />
-      {!online && <OfflineBanner queuedCount={counts.queued} />}
       {visibleItems.length === 0 ? (
         <EmptyState />
       ) : (

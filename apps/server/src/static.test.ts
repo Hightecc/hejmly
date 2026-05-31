@@ -12,6 +12,7 @@ beforeAll(() => {
   writeFileSync(join(root, "index.html"), "<!doctype html><title>onehouse</title>");
   writeFileSync(join(root, "assets", "app.js"), "globalThis.__onehouse = true;");
   writeFileSync(join(root, "manifest.webmanifest"), '{"name":"onehouse"}');
+  writeFileSync(join(root, "sw.js"), "self.__WB_MANIFEST;");
 });
 
 afterAll(() => {
@@ -40,6 +41,14 @@ describe("mountStatic", () => {
     const res = await app.request("/manifest.webmanifest");
     expect(res.status).toBe(200);
     expect(await res.text()).toBe('{"name":"onehouse"}');
+  });
+
+  test("GET /sw.js serves the service worker as JavaScript, not the SPA fallback", async () => {
+    const app = mountStatic(root);
+    const res = await app.request("/sw.js");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("javascript");
+    expect(await res.text()).toBe("self.__WB_MANIFEST;");
   });
 
   test("GET an unknown client route falls back to index.html", async () => {
