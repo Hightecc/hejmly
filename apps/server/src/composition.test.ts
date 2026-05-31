@@ -1,4 +1,7 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { CleanupScheduler } from "@onehouse/app-grocery/server";
 import { createGroceryService } from "@onehouse/app-grocery/server";
 import { createRecipeService } from "@onehouse/app-recipes/server";
@@ -12,6 +15,18 @@ const noopCleanup: CleanupScheduler = {
   cancel: async () => {},
   close: async () => {},
 };
+
+let distRoot: string;
+
+beforeAll(() => {
+  distRoot = mkdtempSync(join(tmpdir(), "onehouse-compose-dist-"));
+  mkdirSync(join(distRoot, "assets"));
+  writeFileSync(join(distRoot, "index.html"), "<!doctype html><title>onehouse</title>");
+});
+
+afterAll(() => {
+  rmSync(distRoot, { recursive: true, force: true });
+});
 
 const groceryFor = (db: Db) => ({
   service: createGroceryService(db),
@@ -28,6 +43,7 @@ const appFor = (auth: Auth, db: Db, baseURL = "http://localhost:5173") =>
     assistants: { service: createAssistantsService(db) },
     grocery: groceryFor(db),
     recipes: { service: createRecipeService(db) },
+    staticRoot: distRoot,
   });
 
 describe("composition", () => {
@@ -163,6 +179,38 @@ describe("composition", () => {
       });
       expect(res.status).toBe(403);
       expect(await res.json()).toEqual({ error: "forbidden_host" });
+    });
+  });
+
+  test("GET / serves the built index.html", async () => {
+    await withTestAuth({}, async ({ auth, db }) => {
+      const app = appFor(auth, db);
+      const res = await app.request("/");
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toContain("text/html");
+      expect(await res.text()).toContain("<title>onehouse</title>");
+    });
+  });
+
+  test("GET an unknown client route falls back to index.html for SPA routing", async () => {
+    await withTestAuth({}, async ({ auth, db }) => {
+      const app = appFor(auth, db);
+      const res = await app.request("/grocery");
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toContain("text/html");
+    });
+  });
+
+  test("the static catch-all does not shadow API or health routes", async () => {
+    await withTestAuth({}, async ({ auth, db }) => {
+      const app = appFor(auth, db);
+
+      const health = await app.request("/healthz");
+      expect(health.status).toBe(200);
+      expect(await health.json()).toEqual({ ok: true });
+
+      const me = await app.request("/api/me");
+      expect(me.status).toBe(401);
     });
   });
 
