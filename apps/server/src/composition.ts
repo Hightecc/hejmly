@@ -6,7 +6,9 @@ import {
   type AssistantsService,
   type AuditRecorder,
   type Auth,
+  type Db,
   createAssistantsRoutes,
+  createIdempotency,
   createRequireSession,
 } from "@onehouse/core/server";
 import { Hono } from "hono";
@@ -21,6 +23,7 @@ const isValidationError = (err: unknown): boolean =>
 
 export type ComposeOptions = {
   auth: Auth;
+  db: Db;
   baseURL: string;
   jwksOrigin: string;
   allowedHosts: readonly string[];
@@ -40,6 +43,7 @@ export type ComposeOptions = {
 
 export const createApp = ({
   auth,
+  db,
   baseURL,
   jwksOrigin,
   allowedHosts,
@@ -68,6 +72,7 @@ export const createApp = ({
       }),
     )
     .use("/api/*", createRequireSession(auth))
+    .use("/api/*", createIdempotency(db))
     .get("/api/me", (c) => c.json({ user: c.get("user") }))
     .route("/api/me/assistants", createAssistantsRoutes({ service: assistants.service, audit }))
     .route("/api/grocery", createGroceryRoutes(grocery))

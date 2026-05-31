@@ -1,6 +1,8 @@
 import { oauthProviderClient } from "@better-auth/oauth-provider/client";
 import { createAuthClient } from "better-auth/react";
 
+import { QUERY_CACHE_PERSIST_KEY, queryClient } from "@/lib/query-client";
+
 const baseURL =
   import.meta.env.VITE_AUTH_URL ??
   (typeof window === "undefined" ? "http://localhost:5173" : window.location.origin);
@@ -14,7 +16,14 @@ export const signInWithGoogle = (callbackURL = "/"): Promise<unknown> =>
     errorCallbackURL: "/sign-in/rejected",
   });
 
-export const signOut = (): Promise<unknown> => authClient.signOut();
+export const signOut = async (): Promise<unknown> => {
+  const result = await authClient.signOut();
+  queryClient.clear();
+  if (typeof window !== "undefined") {
+    window.localStorage.removeItem(QUERY_CACHE_PERSIST_KEY);
+  }
+  return result;
+};
 
 export const useSession = authClient.useSession;
 

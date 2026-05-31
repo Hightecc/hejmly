@@ -56,11 +56,14 @@ export const fetchItems = async (): Promise<GroceryItem[]> => {
   return [...body.items];
 };
 
-export const createItem = async (input: CreateItemInput): Promise<GroceryItem> => {
+export const createItem = async (
+  input: CreateItemInput,
+  idempotencyKey: string = crypto.randomUUID(),
+): Promise<GroceryItem> => {
   const res = await fetch("/api/grocery/items", {
     method: "POST",
     credentials: "include",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", "idempotency-key": idempotencyKey },
     body: JSON.stringify(input),
   });
   const body = await parseJson(res, ItemEnvelopeSchema);

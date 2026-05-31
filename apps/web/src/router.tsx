@@ -1,6 +1,7 @@
-import { Outlet, createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
+import { createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
 import * as v from "valibot";
 
+import { AppShell } from "@/components/AppShell";
 import { AuthGuard } from "@/components/AuthGuard";
 import { AppsScreen } from "@/features/apps/AppsScreen";
 import { CheckingScreen } from "@/features/auth/CheckingScreen";
@@ -16,7 +17,7 @@ import { RecipeDetailScreen } from "@/features/recipes/RecipeDetailScreen";
 import { RecipesScreen } from "@/features/recipes/RecipesScreen";
 
 export const rootRoute = createRootRoute({
-  component: Outlet,
+  component: AppShell,
 });
 
 export const indexRoute = createRoute({
