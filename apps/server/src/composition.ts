@@ -14,6 +14,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
 import { mountMcp } from "./mcp.ts";
+import { mountStatic } from "./static.ts";
 
 const isValidationError = (err: unknown): boolean =>
   err instanceof Error && err.name === "ValiError";
@@ -23,6 +24,7 @@ export type ComposeOptions = {
   baseURL: string;
   jwksOrigin: string;
   allowedHosts: readonly string[];
+  staticRoot: string;
   audit: AuditRecorder;
   assistants: {
     service: AssistantsService;
@@ -41,6 +43,7 @@ export const createApp = ({
   baseURL,
   jwksOrigin,
   allowedHosts,
+  staticRoot,
   audit,
   assistants,
   grocery,
@@ -69,6 +72,7 @@ export const createApp = ({
     .route("/api/me/assistants", createAssistantsRoutes({ service: assistants.service, audit }))
     .route("/api/grocery", createGroceryRoutes(grocery))
     .route("/api/recipes", createRecipeRoutes(recipes))
+    .route("/", mountStatic(staticRoot))
     .onError((err, c) => {
       if (isValidationError(err)) {
         return c.json({ kind: "invalid_input", message: "Invalid input" }, 400);

@@ -88,6 +88,7 @@ const withMcpServer = async (run: (h: McpHarness) => Promise<void>): Promise<voi
           baseURL,
           jwksOrigin: baseURL,
           allowedHosts: [`localhost:${server.port}`],
+          staticRoot: "/nonexistent/onehouse-web-dist",
           audit: createAuditRecorder(db),
           assistants: { service: createAssistantsService(db) },
           grocery: { service: createGroceryService(db), cleanup: noopCleanup },

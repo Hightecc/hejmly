@@ -13,6 +13,8 @@ import { createApp } from "./composition.ts";
 
 const env = parseRuntimeEnv(process.env);
 
+const staticRoot = resolve(import.meta.dirname, "../../web/dist");
+
 const mcpResource = `${env.BETTER_AUTH_URL}/mcp`;
 const allowedHosts = [
   new URL(env.BETTER_AUTH_URL).host,
@@ -47,6 +49,7 @@ const app = createApp({
   baseURL: env.BETTER_AUTH_URL,
   jwksOrigin: `http://localhost:${env.PORT}`,
   allowedHosts,
+  staticRoot,
   audit,
   assistants: { service: assistantsService },
   grocery: { service: groceryService, cleanup },
